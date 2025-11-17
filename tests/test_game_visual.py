@@ -27,6 +27,14 @@ def test_game_screenshot():
     else:
         print("✗ Failed to create screenshot")
     
+    # Test victory state rendering
+    print("\nTesting victory state...")
+    game.puzzle_complete = True
+    game.render()
+    victory_screenshot_path = "/tmp/geomeditate_victory.png"
+    pygame.image.save(game.renderer.screen, victory_screenshot_path)
+    print(f"Victory screenshot saved to {victory_screenshot_path}")
+    
     game.cleanup()
     print("Game cleanup complete.")
 

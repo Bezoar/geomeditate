@@ -26,6 +26,7 @@ class Game:
         
         self.running = True
         self.clock = pygame.time.Clock()
+        self.puzzle_complete = False
         
         # Generate initial puzzle
         self.puzzle.generate()
@@ -34,10 +35,12 @@ class Game:
         """Reset the current puzzle."""
         self.grid.reset_all()
         self.puzzle.mistakes = 0
+        self.puzzle_complete = False
         
     def new_puzzle(self):
         """Generate a new puzzle."""
         self.puzzle.generate()
+        self.puzzle_complete = False
         
     def handle_events(self):
         """Handle all input events."""
@@ -63,13 +66,14 @@ class Game:
     def update(self):
         """Update game state."""
         # Check if puzzle is complete
-        if self.puzzle.is_complete():
-            print(f"Puzzle complete! Mistakes: {self.puzzle.mistakes}")
+        if self.puzzle.is_complete() and not self.puzzle_complete:
+            self.puzzle_complete = True
+            print(f"🎉 Puzzle complete! Mistakes: {self.puzzle.mistakes}")
     
     def render(self):
         """Render the game."""
         completion = self.puzzle.get_completion_percentage()
-        self.renderer.render(self.grid, self.puzzle.mistakes, completion)
+        self.renderer.render(self.grid, self.puzzle.mistakes, completion, self.puzzle_complete)
     
     def run(self):
         """Main game loop."""

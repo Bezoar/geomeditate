@@ -151,7 +151,7 @@ class GameRenderer:
             text_rect = text_surface.get_rect(center=center)
             self.screen.blit(text_surface, text_rect)
     
-    def render(self, grid: HexGrid, mistakes: int = 0, completion: float = 0.0):
+    def render(self, grid: HexGrid, mistakes: int = 0, completion: float = 0.0, puzzle_complete: bool = False):
         """
         Render the entire game state.
         
@@ -159,6 +159,7 @@ class GameRenderer:
             grid: The hex grid to render
             mistakes: Number of mistakes made
             completion: Completion percentage
+            puzzle_complete: Whether the puzzle is complete
         """
         self.screen.fill(self.COLOR_BACKGROUND)
         
@@ -167,11 +168,11 @@ class GameRenderer:
             self.draw_cell(cell)
         
         # Draw UI elements
-        self._draw_ui(mistakes, completion)
+        self._draw_ui(mistakes, completion, puzzle_complete)
         
         pygame.display.flip()
     
-    def _draw_ui(self, mistakes: int, completion: float):
+    def _draw_ui(self, mistakes: int, completion: float, puzzle_complete: bool = False):
         """Draw UI elements like score and mistakes."""
         # Mistakes counter
         mistakes_text = f"Mistakes: {mistakes}"
@@ -183,6 +184,13 @@ class GameRenderer:
         completion_text = f"Complete: {completion:.1f}%"
         text_surface = self.font.render(completion_text, True, self.COLOR_TEXT)
         self.screen.blit(text_surface, (10, 50))
+        
+        # Victory message
+        if puzzle_complete:
+            victory_text = "🎉 PUZZLE COMPLETE! 🎉"
+            text_surface = self.large_font.render(victory_text, True, self.COLOR_ACTIVE)
+            text_rect = text_surface.get_rect(center=(self.width // 2, 50))
+            self.screen.blit(text_surface, text_rect)
         
         # Instructions
         instructions = [
