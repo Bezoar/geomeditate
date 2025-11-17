@@ -1,12 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version: 1.1.2 (Principle II clarification)
+Version: 1.2.0 (Workspace conventions added)
 Date: 2025-11-16
-Previous Version: 1.1.1
+Previous Version: 1.1.2
 
 Modified Principles:
-- II. Hexagonal Grid System (removed game mechanics details, restored to architectural constraints)
+- None
 
 Added Principles:
 - None
@@ -14,21 +14,25 @@ Added Principles:
 Removed Sections:
 - None
 
+Added Sections:
+- Development Workflow > Workspace Conventions (scratch.txt ignore rule)
+
 Templates Requiring Updates:
-✅ plan-template.md (no changes needed - still compatible)
-✅ spec-template.md (no changes needed - game mechanics belong here)
-✅ tasks-template.md (no changes needed - still compatible)
+✅ plan-template.md (no changes needed - convention is workspace-level)
+✅ spec-template.md (no changes needed - convention is workspace-level)
+✅ tasks-template.md (no changes needed - convention is workspace-level)
 
 Follow-up TODOs:
 - Create /specs/001-core-gameplay/spec.md with detailed game mechanics
   (cell states, hint formats, player actions, flower mechanics)
 
-Version Bump Rationale: PATCH bump (1.1.1 → 1.1.2) - Clarified Principle II
-to focus on architectural constraints rather than game mechanics. Removed
-implementation details that belong in feature specs. This correction restores
-proper separation between governance (constitution) and requirements (specs).
+Version Bump Rationale: MINOR bump (1.1.2 → 1.2.0) - Added new workspace
+convention section to Development Workflow. This materially expands guidance
+for AI assistant interactions with the project. While not a core principle,
+it establishes a new workflow convention that affects how development proceeds.
 
 Version History:
+- 1.2.0 (2025-11-16): Added workspace conventions (scratch.txt ignore rule)
 - 1.1.2 (2025-11-16): Principle II clarification (removed game mechanics)
 - 1.1.1 (2025-11-16): Spelling correction (GeoMeditate → Geomeditate)
 - 1.1.0 (2025-11-16): Added 4 new principles (VI-IX)
@@ -193,6 +197,10 @@ Version History:
 3. Each user story MUST be independently testable
 4. Implementation plan MUST verify constitution compliance before coding begins
 
+**Workspace Conventions**:
+- Files named `scratch.txt` MUST be ignored by AI assistants
+- `scratch.txt` files are used for pre-conversation thought gathering and are not authoritative project documents
+
 **Constitution Compliance**:
 - Before implementation, verify feature aligns with all 9 core principles
 - Document any conflicts or tension between principles
@@ -235,4 +243,4 @@ This constitution defines the non-negotiable principles for Geomeditate developm
 - Document trade-offs and chosen resolution
 - Consider if conflict indicates missing or unclear principle
 
-**Version**: 1.1.2 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
+**Version**: 1.2.0 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
