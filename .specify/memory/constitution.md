@@ -1,12 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version: 1.1.1 (Spelling correction)
+Version: 1.1.2 (Principle II clarification)
 Date: 2025-11-16
-Previous Version: 1.1.0
+Previous Version: 1.1.1
 
 Modified Principles:
-- None (content unchanged)
+- II. Hexagonal Grid System (removed game mechanics details, restored to architectural constraints)
 
 Added Principles:
 - None
@@ -15,17 +15,21 @@ Removed Sections:
 - None
 
 Templates Requiring Updates:
-✅ plan-template.md (no changes needed)
-✅ spec-template.md (no changes needed)
-✅ tasks-template.md (no changes needed)
+✅ plan-template.md (no changes needed - still compatible)
+✅ spec-template.md (no changes needed - game mechanics belong here)
+✅ tasks-template.md (no changes needed - still compatible)
 
-Follow-up TODOs: None
+Follow-up TODOs:
+- Create /specs/001-core-gameplay/spec.md with detailed game mechanics
+  (cell states, hint formats, player actions, flower mechanics)
 
-Version Bump Rationale: PATCH bump (1.1.0 → 1.1.1) - Corrected spelling of
-project name from "GeoMeditate" to "Geomeditate" (title case). This is a
-non-semantic wording correction that does not affect governance rules.
+Version Bump Rationale: PATCH bump (1.1.1 → 1.1.2) - Clarified Principle II
+to focus on architectural constraints rather than game mechanics. Removed
+implementation details that belong in feature specs. This correction restores
+proper separation between governance (constitution) and requirements (specs).
 
 Version History:
+- 1.1.2 (2025-11-16): Principle II clarification (removed game mechanics)
 - 1.1.1 (2025-11-16): Spelling correction (GeoMeditate → Geomeditate)
 - 1.1.0 (2025-11-16): Added 4 new principles (VI-IX)
 - 1.0.0 (2025-11-16): Initial ratification
@@ -57,26 +61,11 @@ Version History:
 - Neighbor detection MUST account for 6 adjacent cells per hexagon
 - Coordinate system MUST be consistent (use axial, cube, or offset coordinates)
 - Rendering MUST preserve hexagonal proportions and spacing
-- Puzzle generation algorithms MUST respect hexagonal topology.
-- The game must save the current puzzle state between sessions, so that the player can return to it later.
-- The game grid consists of unmarked, marked, and open cells. Cells can be either mined or unmined.
-- Cells can have hints associated with them:
-  - For unmined cells: 
-    - The character "?" or an empty hint means there is no hint associated with this cell.
-    - A simple number from 0 to 6 reveals the number of mined cells adjacent to the open cell.
-    - A number wrapped in dashes ("-2-" through "-5-") means that there are that many mined cells adjacent to the tapped cell, and the mined cells are not contiguous around to the tapped cell.
-    - A number wrapped in curly braces ("{2}" through "{6}") means that there are that many mined cells adjacent to the tapped cell, and the mines cells are contiguous/joined together around the tapped cell.
-  - For mined but marked cells, the presence of a hint turns it into a "flower":
-    - The hint on a flower contains the number of mined cells within a 2-hex radius of the tapped cell.
-    - The original Hexcells Infinite did not use dash or curly brace notation in flower hints. Only simple-number hints should be used on flowers unless changed in a subsequent feature.
-- A player can only mark or open a cell.
-- If the player opens an unmined cell, the cell becomes open and any hint associated with the cell is displayed.
-- If the player marks an unmined cell, the cell becomes marked and any hint associated with the cell is displayed.
-- If the player attempts to open a mined cell, the cell remains unmarked and a mistake is registered. 
-- If the player attempts to mark an unmined cell, the cell remains unmarked and a mistake is registered.
-- The exact definition of tutorial vs. easy vs. hard mode will be made in the spec, but generally, hard puzzles incorporate more complex, sometimes interlocking hints in a way that easy mode will not.
+- Puzzle generation algorithms MUST respect hexagonal topology
+- Distance calculations MUST account for hexagonal geometry (not Euclidean)
+- All game mechanics MUST be designed for 6-neighbor adjacency (not 4 or 8)
 
-**Rationale**: Hexagonal grids provide unique puzzle-solving challenges distinct from square grids. The 6-neighbor system creates different pattern recognition opportunities and requires specialized algorithms for distance, pathfinding, and neighbor detection.
+**Rationale**: Hexagonal grids provide unique puzzle-solving challenges distinct from square grids. The 6-neighbor system creates different pattern recognition opportunities and requires specialized algorithms for distance, pathfinding, and neighbor detection. This architectural choice impacts all game systems and must be maintained consistently throughout the codebase.
 
 ### III. Progressive Disclosure
 
@@ -246,4 +235,4 @@ This constitution defines the non-negotiable principles for Geomeditate developm
 - Document trade-offs and chosen resolution
 - Consider if conflict indicates missing or unclear principle
 
-**Version**: 1.1.1 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
+**Version**: 1.1.2 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
