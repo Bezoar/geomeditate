@@ -1,30 +1,32 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version: 1.0.0 (Initial ratification)
+Version: 1.1.0 (Expanded principles)
 Date: 2025-11-16
-
-This is the initial constitution for the GeoMeditate project.
+Previous Version: 1.0.0
 
 Modified Principles:
-- Created I. Forgiving Gameplay (mistakes tallied, not penalized)
-- Created II. Hexagonal Grid System (core game mechanic)
-- Created III. Progressive Disclosure (reveal mechanics gradually)
-- Created IV. Deterministic Puzzles (reproducible, fair solutions)
-- Created V. Minimalist UI (focus on puzzle, reduce clutter)
+- None (existing principles unchanged)
+
+Added Principles:
+- Created VI. Responsiveness (fast, fluid UI response)
+- Created VII. Audio-Visual Synchronization (timing alignment)
+- Created VIII. Smooth User Experience (no jarring transitions)
+- Created IX. Configurability (player preferences and customization)
 
 Added Sections:
-- Core Principles (5 principles)
-- Quality Standards
-- Development Workflow
-- Governance
+- None (principles added to existing Core Principles section)
 
 Templates Requiring Updates:
-✅ plan-template.md (reviewed - generic structure compatible)
-✅ spec-template.md (reviewed - user story format compatible)
-✅ tasks-template.md (reviewed - phase structure compatible)
+✅ plan-template.md (reviewed - generic structure still compatible)
+✅ spec-template.md (reviewed - new principles add quality requirements)
+✅ tasks-template.md (reviewed - new principles may require polish phase tasks)
 
 Follow-up TODOs: None - all placeholders filled
+
+Version Bump Rationale: MINOR bump (1.0.0 → 1.1.0) - Added 4 new principles
+without removing or redefining existing ones. This is a material expansion
+of governance scope requiring updated compliance checks.
 -->
 
 # GeoMeditate Constitution
@@ -97,6 +99,63 @@ Follow-up TODOs: None - all placeholders filled
 
 **Rationale**: The "meditate" in GeoMeditate emphasizes calm, focused engagement. Visual noise disrupts flow state and contradicts the contemplative experience. Minimalism also improves performance and accessibility.
 
+### VI. Responsiveness
+
+**Rule**: User interactions MUST receive immediate visual and/or audio feedback with consistent, predictable timing.
+
+**Implementation Requirements**:
+- UI MUST respond to input within 100ms (perceived as instant)
+- Hover states MUST activate within one frame (16ms at 60fps)
+- Click/tap feedback MUST be visible before action completes
+- Loading states MUST appear if operations exceed 200ms
+- No blocking operations on the main/UI thread
+- Touch targets MUST be appropriately sized (minimum 44x44 points)
+
+**Rationale**: Responsiveness builds trust and confidence in the interface. Delayed feedback creates uncertainty and frustration, breaking the meditative flow. Immediate response to input is essential for maintaining engagement and creating a sense of direct manipulation.
+
+### VII. Audio-Visual Synchronization
+
+**Rule**: Sound effects and visual animations MUST be precisely synchronized to maintain immersion and polish.
+
+**Implementation Requirements**:
+- Audio cues MUST trigger within 16ms of corresponding visual events
+- Animation duration MUST match audio duration for paired effects
+- Cell reveal sounds MUST align with reveal animation completion
+- Mistake feedback audio MUST sync with visual mistake indicator
+- Background audio (if any) MUST not conflict with interaction sounds
+- Platform audio latency MUST be measured and compensated for
+
+**Rationale**: Desynchronized audio-visual feedback feels amateurish and breaks immersion. Precise timing reinforces the connection between player action and game response, enhancing the satisfying "juice" of interaction. This is especially important for a meditative experience where subtle details matter.
+
+### VIII. Smooth User Experience
+
+**Rule**: All transitions, animations, and state changes MUST be smooth with no jarring interruptions or sudden changes.
+
+**Implementation Requirements**:
+- Animations MUST use appropriate easing functions (no linear motion for UI)
+- State transitions MUST be animated (fade, slide, scale) not instant
+- Frame rate MUST remain consistent during transitions (no stuttering)
+- Navigation MUST preserve context (where am I, where did I come from)
+- Errors MUST be presented gracefully, not as modal blocks
+- Difficulty changes MUST be gradual, not sudden spikes
+
+**Rationale**: Jarring transitions and abrupt changes disrupt the calm, meditative state. Smoothness creates a feeling of quality and care. Consistent, predictable motion helps players build mental models of the interface, reducing cognitive load and maintaining flow.
+
+### IX. Configurability
+
+**Rule**: Players MUST be able to customize their experience according to personal preferences and needs.
+
+**Implementation Requirements**:
+- Settings MUST persist across sessions
+- Audio levels MUST be independently adjustable (music, SFX, or mute)
+- Animation speed/effects MUST be adjustable or toggleable
+- Color schemes MUST include alternatives (dark mode, high contrast, color-blind modes)
+- Difficulty level MUST be selectable and changeable
+- Input methods MUST support multiple options (mouse, keyboard, touch)
+- Accessibility features MUST be easily discoverable in settings
+
+**Rationale**: Players have different needs, preferences, and abilities. Configurability ensures accessibility and comfort for diverse audiences. What creates a meditative experience varies by individual—some prefer sound, others silence; some like animations, others find them distracting. Respecting player autonomy enhances satisfaction and inclusivity.
+
 ## Quality Standards
 
 **Testing Requirements**:
@@ -126,7 +185,7 @@ Follow-up TODOs: None - all placeholders filled
 4. Implementation plan MUST verify constitution compliance before coding begins
 
 **Constitution Compliance**:
-- Before implementation, verify feature aligns with all 5 core principles
+- Before implementation, verify feature aligns with all 9 core principles
 - Document any conflicts or tension between principles
 - Justify complexity only when simpler alternatives violate core principles
 - Code reviews MUST check principle adherence
@@ -163,8 +222,8 @@ This constitution defines the non-negotiable principles for GeoMeditate developm
 - Any principle violation MUST be explicitly documented with rationale
 
 **Conflict Resolution**:
-- When principles conflict, prioritize in order: I → II → III → IV → V
+- When principles conflict, prioritize in order: I → II → III → IV → V → VI → VII → VIII → IX
 - Document trade-offs and chosen resolution
 - Consider if conflict indicates missing or unclear principle
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
+**Version**: 1.1.0 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
