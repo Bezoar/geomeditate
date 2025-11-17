@@ -1,35 +1,37 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version: 1.1.0 (Expanded principles)
+Version: 1.1.1 (Spelling correction)
 Date: 2025-11-16
-Previous Version: 1.0.0
+Previous Version: 1.1.0
 
 Modified Principles:
-- None (existing principles unchanged)
+- None (content unchanged)
 
 Added Principles:
-- Created VI. Responsiveness (fast, fluid UI response)
-- Created VII. Audio-Visual Synchronization (timing alignment)
-- Created VIII. Smooth User Experience (no jarring transitions)
-- Created IX. Configurability (player preferences and customization)
+- None
 
-Added Sections:
-- None (principles added to existing Core Principles section)
+Removed Sections:
+- None
 
 Templates Requiring Updates:
-✅ plan-template.md (reviewed - generic structure still compatible)
-✅ spec-template.md (reviewed - new principles add quality requirements)
-✅ tasks-template.md (reviewed - new principles may require polish phase tasks)
+✅ plan-template.md (no changes needed)
+✅ spec-template.md (no changes needed)
+✅ tasks-template.md (no changes needed)
 
-Follow-up TODOs: None - all placeholders filled
+Follow-up TODOs: None
 
-Version Bump Rationale: MINOR bump (1.0.0 → 1.1.0) - Added 4 new principles
-without removing or redefining existing ones. This is a material expansion
-of governance scope requiring updated compliance checks.
+Version Bump Rationale: PATCH bump (1.1.0 → 1.1.1) - Corrected spelling of
+project name from "GeoMeditate" to "Geomeditate" (title case). This is a
+non-semantic wording correction that does not affect governance rules.
+
+Version History:
+- 1.1.1 (2025-11-16): Spelling correction (GeoMeditate → Geomeditate)
+- 1.1.0 (2025-11-16): Added 4 new principles (VI-IX)
+- 1.0.0 (2025-11-16): Initial ratification
 -->
 
-# GeoMeditate Constitution
+# Geomeditate Constitution
 
 ## Core Principles
 
@@ -44,7 +46,7 @@ of governance scope requiring updated compliance checks.
 - No "game over" state from incorrect guesses
 - UI MUST display mistakes in a neutral, informative manner (not punitive)
 
-**Rationale**: This principle differentiates GeoMeditate from traditional minesweeper games where mistakes are fatal. The focus is on learning, meditation, and puzzle-solving rather than perfection. Players should feel safe to experiment and learn from errors.
+**Rationale**: This principle differentiates Geomeditate from traditional minesweeper games where mistakes are fatal. The focus is on learning, meditation, and puzzle-solving rather than perfection. Players should feel safe to experiment and learn from errors.
 
 ### II. Hexagonal Grid System
 
@@ -97,7 +99,7 @@ of governance scope requiring updated compliance checks.
 - UI chrome (menus, stats) MUST be collapsible or auto-hiding
 - No advertisements, popups, or interruptions during puzzle solving
 
-**Rationale**: The "meditate" in GeoMeditate emphasizes calm, focused engagement. Visual noise disrupts flow state and contradicts the contemplative experience. Minimalism also improves performance and accessibility.
+**Rationale**: The "meditate" in Geomeditate emphasizes calm, focused engagement. Visual noise disrupts flow state and contradicts the contemplative experience. Minimalism also improves performance and accessibility.
 
 ### VI. Responsiveness
 
@@ -204,7 +206,7 @@ of governance scope requiring updated compliance checks.
 
 ## Governance
 
-This constitution defines the non-negotiable principles for GeoMeditate development. All design decisions, feature additions, and implementation choices MUST align with these principles.
+This constitution defines the non-negotiable principles for Geomeditate development. All design decisions, feature additions, and implementation choices MUST align with these principles.
 
 **Amendment Process**:
 1. Proposed amendments MUST be documented with rationale
@@ -226,4 +228,4 @@ This constitution defines the non-negotiable principles for GeoMeditate developm
 - Document trade-offs and chosen resolution
 - Consider if conflict indicates missing or unclear principle
 
-**Version**: 1.1.0 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
+**Version**: 1.1.1 | **Ratified**: 2025-11-16 | **Last Amended**: 2025-11-16
