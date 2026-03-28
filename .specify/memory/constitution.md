@@ -1,15 +1,13 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (none) → 1.0.0  (initial ratification)
-Modified principles: N/A — first version
+Version change: 1.0.0 → 1.1.0
+Modified principles: none
 Added sections:
-  - Core Principles (5 principles)
-  - Technology & Platform
-  - Development Workflow
-  - Governance
+  - Core Principles: added VI. Responsiveness / Low Latency
+  - Development Workflow: added Test Coverage Requirements subsection
 Templates reviewed:
-  - .specify/templates/plan-template.md       ✅ Constitution Check section aligns
+  - .specify/templates/plan-template.md       ✅ Constitution Check section aligns (update "five principles" refs if present)
   - .specify/templates/spec-template.md       ✅ No conflicting constraints
   - .specify/templates/tasks-template.md      ✅ Phase/task structure compatible
   - .specify/templates/constitution-template.md ✅ Source template
@@ -79,6 +77,22 @@ filled whenever a violation of this principle is accepted.
 **Rationale**: Game prototypes accrue technical debt fast; a strict YAGNI policy
 keeps the codebase navigable as the technology surface grows across test apps.
 
+### VI. Responsiveness / Low Latency
+
+The game MUST feel immediate. All audio responses to user input MUST begin
+playback within **14 ms** of the triggering event. Visual feedback to input
+(e.g. highlight, animation start) MUST be initiated within the same render
+frame as the input event. Implementations that cannot meet these thresholds
+MUST be prototyped in a test application to demonstrate acceptable latency
+before being promoted to the main game.
+
+Any audio/visual synchronization system MUST be validated in a dedicated test
+application (Principle I) with measurable latency assertions before integration.
+
+**Rationale**: The game plans to pair audio and video responses closely with
+game mechanics; perceptible lag breaks immersion and undermines the meditative
+experience the game is designed to create.
+
 ## Technology & Platform
 
 The technology stack for each test application and for the main game MUST be
@@ -105,6 +119,21 @@ The canonical development sequence is:
 Skipping steps 2–4 requires explicit written justification in the feature plan
 and approval before implementation starts.
 
+### Test Coverage Requirements
+
+Every agent-generated code change MUST achieve **100% branch coverage**.
+
+If a branch cannot practically be tested (e.g. unreachable error paths in
+third-party bindings, platform-specific guards), the exception MUST be:
+1. Explicitly documented in `docs/tracking/test-coverage-exceptions.md` with
+   a rationale and the specific file/line range that is excluded.
+2. Approved before the change is merged.
+
+Coverage is measured at the unit level. Integration and end-to-end tests
+do not substitute for branch coverage at the unit level unless the code
+under test has no unit-testable surface (e.g. pure UI rendering code, which
+falls under Principle II's manual-playability-validation exemption).
+
 ## Governance
 
 This Constitution supersedes all other development practices within this
@@ -117,9 +146,9 @@ repository. Amendments require:
 4. Review of all templates listed in the Sync Impact Report.
 
 All plans and specs MUST include a Constitution Check section that verifies
-compliance with the five principles before Phase 0 research begins.
+compliance with the six principles before Phase 0 research begins.
 
 Compliance is re-verified at each milestone checkpoint. Violations must be
 documented in the Complexity Tracking table of the relevant plan.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-28 | **Last Amended**: 2026-03-28
+**Version**: 1.1.0 | **Ratified**: 2026-03-28 | **Last Amended**: 2026-03-28
