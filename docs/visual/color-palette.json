@@ -1,0 +1,51 @@
+{
+  "source": "docs/screenshots/hexcells-infinite-board.jpg",
+  "game": "Hexcells Infinite",
+  "extractedDate": "2026-03-28",
+  "palette": {
+    "background": {
+      "primary": "#141414",
+      "vignetteEdge": "#1A1A1A"
+    },
+    "cells": {
+      "orange": {
+        "base": "#E8952A",
+        "highlight": "#F0A030",
+        "shadow": "#D4862A",
+        "role": "Covered cells (not yet acted on — could be filled or empty)"
+      },
+      "blue": {
+        "base": "#4A8AC4",
+        "highlight": "#5A9AD4",
+        "shadow": "#3D74A8",
+        "role": "Marked filled (mined) cells — player identified as filled"
+      },
+      "dark": {
+        "fill": "#2A2A2A",
+        "border": "#3A3A3A",
+        "role": "Open empty cells (revealed, may contain clue numbers)"
+      },
+      "outline": {
+        "border": "#555555",
+        "fill": "transparent",
+        "role": "Missing hexes (not part of gameplay, provides spatial context)"
+      }
+    },
+    "hud": {
+      "remainingBadge": "#4A8AC4",
+      "mistakesBadge": "#D94040",
+      "text": "#FFFFFF",
+      "secondaryText": "#AAAAAA"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "muted": "#AAAAAA"
+    }
+  },
+  "semantics": {
+    "warm": "orange — covered/unknown, active, requires player deduction",
+    "cool": "blue — marked filled, confirmed mined, resolved",
+    "neutral": "dark grey — open empty, missing hexes, background",
+    "alarm": "red — mistakes counter (HUD only)"
+  }
+}
