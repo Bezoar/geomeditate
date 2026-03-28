@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexcells Infinite — Annotated Screenshot</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0e0e0e;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+
+  header {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px 16px;
+  }
+  header h1 { font-size: 1.6rem; font-weight: 600; color: #fff; }
+  header p  { color: #999; font-size: 0.9rem; margin-top: 4px; }
+
+  .instructions {
+    max-width: 1200px;
+    margin: 0 auto 12px;
+    padding: 0 24px;
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  /* ── Annotated image ── */
+  .image-container {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto 24px;
+  }
+  .image-container img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid #333;
+  }
+  .image-container svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    pointer-events: none;
+  }
+  .image-container svg rect,
+  .image-container svg ellipse {
+    pointer-events: visibleStroke;
+    cursor: default;
+  }
+  .image-container svg text {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-weight: 700;
+    paint-order: stroke fill;
+    stroke: #000;
+    stroke-width: 6;
+    stroke-linejoin: round;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+    padding: 0 24px;
+  }
+  .legend h2 {
+    font-size: 1.2rem; font-weight: 600; color: #fff;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #333; padding-bottom: 8px;
+  }
+  .legend-section { margin-bottom: 24px; }
+  .legend-section h3 {
+    font-size: 0.85rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .legend-section h3.cells   { color: #e07040; }
+  .legend-section h3.hud     { color: #4090d0; }
+  .legend-section h3.numbers { color: #30a060; }
+
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 12px;
+  }
+  .legend-item {
+    display: flex; gap: 12px; padding: 12px;
+    background: #1a1a1a; border-radius: 6px; border: 1px solid #2a2a2a;
+  }
+  .legend-item:hover { border-color: #444; }
+
+  .legend-swatch {
+    flex-shrink: 0; width: 28px; height: 28px;
+    border-radius: 4px; border: 2px solid;
+  }
+
+  .legend-text { flex: 1; }
+  .legend-text strong { display: block; color: #fff; font-size: 0.9rem; margin-bottom: 2px; }
+  .legend-text span   { font-size: 0.82rem; color: #aaa; }
+
+  /* ── Rules ── */
+  .rules {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+    padding: 0 24px;
+  }
+  .rules h2 {
+    font-size: 1.2rem; font-weight: 600; color: #fff;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #333; padding-bottom: 8px;
+  }
+  .rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  .rule-card {
+    padding: 16px; background: #1a1a1a;
+    border-radius: 6px; border: 1px solid #2a2a2a;
+  }
+  .rule-card h3 { font-size: 0.95rem; color: #fff; margin-bottom: 6px; }
+  .rule-card p  { font-size: 0.85rem; color: #aaa; }
+  .rule-card code {
+    background: #252525; padding: 1px 5px; border-radius: 3px;
+    font-size: 0.85rem; color: #e8952a;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Hexcells Infinite — Annotated Screenshot</h1>
+  <p>Source: docs/screenshots/hexcells-infinite-board.jpg (2302 x 1319 px)</p>
+</header>
+
+<p class="instructions">
+  Colored rectangles highlight regions containing examples of each element type.
+  Labels appear at the edge of each region. See the legend below for full descriptions.
+</p>
+
+<!-- ════════════════════════════════════════════
+     ANNOTATED IMAGE WITH SVG OVERLAY
+     ════════════════════════════════════════════ -->
+<div class="image-container">
+  <img src="../screenshots/hexcells-infinite-board.jpg"
+       alt="Hexcells Infinite game board screenshot">
+
+  <svg viewBox="0 0 2302 1319" preserveAspectRatio="xMidYMid meet">
+
+    <!-- ── A: Orange covered cells ──
+         Left portion of the grid where orange dominates -->
+    <rect x="620" y="500" width="500" height="450"
+          rx="12" fill="none" stroke="#FF7733" stroke-width="5"
+          stroke-dasharray="14 6" opacity="0.9"/>
+    <text x="630" y="965" fill="#FF7733" font-size="36">A — Orange covered cells</text>
+
+    <!-- ── B: Blue filled cells ──
+         Cluster on the right side of the grid -->
+    <rect x="1530" y="400" width="380" height="380"
+          rx="12" fill="none" stroke="#33AAFF" stroke-width="5"
+          stroke-dasharray="14 6" opacity="0.9"/>
+    <text x="1540" y="795" fill="#33AAFF" font-size="36">B — Blue filled cells</text>
+
+    <!-- ── C: Dark open empty cells ──
+         Corridor through the center of the grid -->
+    <rect x="700" y="350" width="450" height="300"
+          rx="12" fill="none" stroke="#CC66FF" stroke-width="5"
+          stroke-dasharray="14 6" opacity="0.9"/>
+    <text x="710" y="345" fill="#CC66FF" font-size="36">C — Dark open cells (with clues)</text>
+
+    <!-- ── D: Grey missing hexes ──
+         Void area in the upper-right of the grid -->
+    <rect x="1310" y="200" width="250" height="180"
+          rx="12" fill="none" stroke="#888888" stroke-width="5"
+          stroke-dasharray="14 6" opacity="0.9"/>
+    <text x="1320" y="400" fill="#888888" font-size="36">D — Missing hexes</text>
+
+    <!-- ── E: External column/diagonal clue numbers ──
+         Numbers floating above the grid's top edge -->
+    <rect x="400" y="115" width="900" height="80"
+          rx="12" fill="none" stroke="#44DD66" stroke-width="5"
+          stroke-dasharray="14 6" opacity="0.9"/>
+    <text x="1310" y="145" fill="#44DD66" font-size="36">E — External line clues</text>
+
+    <!-- ── F: REMAINING badge ── -->
+    <rect x="1930" y="42" width="340" height="110"
+          rx="12" fill="none" stroke="#4090D0" stroke-width="5" opacity="0.9"/>
+    <text x="1920" y="38" fill="#4090D0" font-size="32" text-anchor="end">F — REMAINING</text>
+
+    <!-- ── G: MISTAKES badge ── -->
+    <rect x="1930" y="162" width="340" height="110"
+          rx="12" fill="none" stroke="#D05050" stroke-width="5" opacity="0.9"/>
+    <text x="1920" y="250" fill="#D05050" font-size="32" text-anchor="end">G — MISTAKES</text>
+
+    <!-- ── H: MENU ── -->
+    <rect x="20" y="80" width="80" height="180"
+          rx="12" fill="none" stroke="#4090D0" stroke-width="5" opacity="0.9"/>
+    <text x="110" y="135" fill="#4090D0" font-size="32">H — MENU</text>
+
+    <!-- ── I: Flower (blue cell with 2-hex-radius clue) ──
+         The "8" flower in the lower-right area of the grid -->
+    <rect x="1512" y="900" width="320" height="250"
+          rx="12" fill="none" stroke="#FFDD44" stroke-width="5"
+          stroke-dasharray="14 6" opacity="0.9"/>
+    <text x="1522" y="1170" fill="#FFDD44" font-size="36">I — Flower (blue cell with number)</text>
+
+  </svg>
+</div>
+
+<!-- ════════════════════════════════════════════
+     LEGEND
+     ════════════════════════════════════════════ -->
+<div class="legend">
+  <h2>Legend</h2>
+
+  <!-- Cell States -->
+  <div class="legend-section">
+    <h3 class="cells">Cell States (A-D, I)</h3>
+    <div class="legend-grid">
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent; border-color:#FF7733;"></div>
+        <div class="legend-text">
+          <strong>A — Orange Covered Cells</strong>
+          <span>Cells the player hasn't acted on yet. Could be filled (mined) or
+          empty. The player must deduce which. Marking a filled cell turns it blue.
+          Opening an empty cell reveals it as dark. Incorrectly opening a filled cell
+          triggers a mistake.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent; border-color:#33AAFF;"></div>
+        <div class="legend-text">
+          <strong>B — Blue Filled Cells (Marked)</strong>
+          <span>Cells the player has correctly identified as filled/mined. Blue is the
+          "solved-positive" state. Some blue cells contain a number — see "I — Flower"
+          below.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent; border-color:#FFDD44;"></div>
+        <div class="legend-text">
+          <strong>I — Flower (Blue Cell With Number)</strong>
+          <span>A blue (filled) cell containing a clue number. The number counts filled
+          cells within a <strong>2-hex radius</strong> (the 18 cells in the two concentric
+          rings around it — not just the 6 immediate neighbors). For example, the "8"
+          flower in the lower-right means 8 of those 18 surrounding cells are filled.
+          Flowers can also use curly-brace and dash modifiers for contiguity.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent; border-color:#CC66FF;"></div>
+        <div class="legend-text">
+          <strong>C — Dark Open Empty Cells</strong>
+          <span>Revealed empty cells. Very dark fill, barely above background color.
+          May contain clue numbers indicating how many of the cell's six hex neighbors
+          are filled. Clue numbers can be plain (<code>3</code>), curly-braced
+          (<code>{3}</code>), or dashed (<code>-3-</code>) — see Number Types below.
+          Some cells show <code>?</code> instead, meaning no clue is available.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent; border-color:#888;"></div>
+        <div class="legend-text">
+          <strong>D — Missing Hexes</strong>
+          <span>Hex positions absent from the puzzle. Shown as faint grey outlines or
+          completely absent. Not interactive. They shape the grid's irregular silhouette
+          and affect neighbor/line counts for adjacent cells.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div class="legend-section">
+    <h3 class="hud">HUD Elements (F-H)</h3>
+    <div class="legend-grid">
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#4090D0; border-color:#4090D0;"></div>
+        <div class="legend-text">
+          <strong>F — REMAINING Counter</strong>
+          <span>Blue rounded-rectangle badge showing filled cells left to find.
+          Shows "71" in this screenshot. Primary progress indicator.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#D05050; border-color:#D05050;"></div>
+        <div class="legend-text">
+          <strong>G — MISTAKES Counter</strong>
+          <span>Red/coral badge tracking errors. Shows "0" here. The only alarm-colored
+          element in the entire game.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent; border-color:#4090D0;"></div>
+        <div class="legend-text">
+          <strong>H — MENU</strong>
+          <span>Vertical text at upper-left, below macOS window controls. Very low
+          visual weight to keep focus on the puzzle.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Number Types -->
+  <div class="legend-section">
+    <h3 class="numbers">Number Types (E + in-cell)</h3>
+    <div class="legend-grid">
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:transparent; border-color:#44DD66;"></div>
+        <div class="legend-text">
+          <strong>E — Line Clues (Column/Diagonal)</strong>
+          <span>Numbers at the end of a column or diagonal, indicating the total
+          count of filled cells along that line. Appear along the top edge (column
+          clues, e.g., "6", "3", "4"), along the left and right sides (diagonal
+          clues), and also <strong>inside the grid in missing hex positions</strong>
+          — where they count filled cells along a partial line from that position to
+          the grid edge. Can be plain, curly-braced, or dashed.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#252525; border-color:#44DD66;"></div>
+        <div class="legend-text">
+          <strong>Plain Number (<code>3</code>)</strong>
+          <span>A bare number inside an open cell or at a line endpoint. For cells:
+          how many of six neighbors are filled. For lines: total filled count.
+          No contiguity information — filled cells could be in any arrangement.
+          Visible throughout the dark cell corridors (region C).</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#252525; border-color:#44DD66;"></div>
+        <div class="legend-text">
+          <strong>Curly-Brace (<code>{n}</code>) — Contiguous</strong>
+          <span>All filled cells form a single connected group — no gaps. For neighbor
+          clues: an unbroken arc around the cell. For line clues: a single run along
+          the line. A stronger constraint than a plain number.</span>
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#252525; border-color:#44DD66;"></div>
+        <div class="legend-text">
+          <strong>Dashed (<code>-n-</code>) — Discontiguous</strong>
+          <span>Filled cells are <em>not</em> all in one group. At least one gap
+          separates them into two or more clusters. Subsets within a cluster can be
+          adjacent. Visible on cells showing e.g. <code>-3-</code> or <code>-4-</code>
+          in the dark corridors.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     GAME MECHANICS
+     ════════════════════════════════════════════ -->
+<div class="rules">
+  <h2>Game Mechanics</h2>
+  <div class="rules-grid">
+    <div class="rule-card">
+      <h3>Objective</h3>
+      <p>Identify all filled (mined) cells on the hex grid using logical deduction
+      from clue numbers. Mark filled cells (they turn blue). Open empty cells
+      (they reveal their dark interior and possibly a clue number).</p>
+    </div>
+    <div class="rule-card">
+      <h3>Mistakes</h3>
+      <p>Two actions trigger a mistake: opening a cell that is actually filled
+      (mined), or marking a cell as filled when it is actually empty. The goal
+      is zero mistakes.</p>
+    </div>
+    <div class="rule-card">
+      <h3>Neighbor Clues (Open Empty Cells)</h3>
+      <p>A number inside an open empty cell tells you how many of its six immediate
+      hex neighbors are filled. Modified by <code>{}</code> (contiguous) or
+      <code>- -</code> (discontiguous) notation.</p>
+    </div>
+    <div class="rule-card">
+      <h3>Flower Clues (Blue Filled Cells)</h3>
+      <p>A number inside a blue (filled) cell is a "flower." It counts filled cells
+      within a <strong>2-hex radius</strong> — the 18 cells in the two concentric
+      rings around it, not just the 6 immediate neighbors. Same contiguity modifiers
+      apply.</p>
+    </div>
+    <div class="rule-card">
+      <h3>Line Clues (Column/Diagonal)</h3>
+      <p>Numbers at the end of a column or diagonal indicate the total filled
+      count along that line. Appear at the top edge, left/right sides, and also
+      inside the grid in missing hex positions (counting a partial line from that
+      point to the grid edge). Same contiguity modifiers apply.</p>
+    </div>
+    <div class="rule-card">
+      <h3>Contiguity: <code>{n}</code></h3>
+      <p>Curly braces guarantee all filled cells form one connected group — no gaps
+      in the ring of neighbors or along the line.</p>
+    </div>
+    <div class="rule-card">
+      <h3>Discontiguity: <code>-n-</code></h3>
+      <p>Dashes guarantee the filled cells are split into 2+ separate groups.
+      At least one gap must exist between them.</p>
+    </div>
+    <div class="rule-card">
+      <h3>Grid Shape</h3>
+      <p>Irregular organic boundary. Some hex positions are missing entirely (grey
+      outlines). Missing hexes aren't interactive but affect neighbor counts and
+      line clue totals.</p>
+    </div>
+    <div class="rule-card">
+      <h3>Hex Orientation</h3>
+      <p>Flat-top hexagons. Flat edges on top and bottom; vertices point left and
+      right. Offset-column stagger.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

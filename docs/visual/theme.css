@@ -1,0 +1,73 @@
+/*
+ * Hexcells Infinite — extracted theme
+ * Source: docs/screenshots/hexcells-infinite-board.jpg
+ *
+ * Usage: apply the .hexcells-theme class to a root container,
+ * then reference these custom properties throughout your styles.
+ */
+
+.hexcells-theme {
+  /* ── Background ── */
+  --bg-primary: #141414;
+  --bg-vignette: #1A1A1A;
+
+  /* ── Orange cells (unrevealed / unknown) ── */
+  --cell-orange: #E8952A;
+  --cell-orange-light: #F0A030;
+  --cell-orange-dark: #D4862A;
+
+  /* ── Blue cells (confirmed / filled) ── */
+  --cell-blue: #4A8AC4;
+  --cell-blue-light: #5A9AD4;
+  --cell-blue-dark: #3D74A8;
+
+  /* ── Dark cells (revealed empty) ── */
+  --cell-empty-fill: #2A2A2A;
+  --cell-empty-border: #3A3A3A;
+
+  /* ── Outline cells (eliminated / scaffold) ── */
+  --cell-outline: #555555;
+
+  /* ── HUD ── */
+  --hud-remaining: #4A8AC4;
+  --hud-mistakes: #D94040;
+
+  /* ── Text ── */
+  --text-primary: #FFFFFF;
+  --text-muted: #AAAAAA;
+
+  /* ── Cell geometry ── */
+  --cell-gap: 2px;
+  --cell-border-radius: 0; /* hexagons are clipped, not rounded */
+
+  /* ── Typography ── */
+  --font-family: 'Montserrat', 'Josefin Sans', 'Roboto Condensed', system-ui, sans-serif;
+  --font-size-cell: 0.625rem;   /* ~10px */
+  --font-size-hud-value: 1.5rem; /* ~24px */
+  --font-size-hud-label: 0.75rem; /* ~12px */
+  --font-weight-cell: 500;
+  --font-weight-hud-value: 700;
+}
+
+/* ── Base application ── */
+
+.hexcells-theme {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+}
+
+/* ── Radial vignette overlay (optional) ── */
+
+.hexcells-theme::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    var(--bg-vignette) 100%
+  );
+  z-index: 0;
+}
