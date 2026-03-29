@@ -25,6 +25,11 @@
 - Q: How should guide lines appear? → A: 30% opaque white, 2px wide, extending from edge-to-edge of the first and last cells along the axis direction.
 - Q: What should the hit area for line clue interactions be? → A: A triangle wedge inside the missing hex cell where the clue label sits, pointing toward the grid. Not overlapping any grid cell.
 - Q: Should users be able to delete/restore hex cells? → A: Yes. Option+Shift+click toggles a cell between present and missing. Missing positions render invisible placeholder polygons so they can be clicked to restore.
+- Q: Which mouse button opens vs marks cells? → A: Left-click marks (primary action in gameplay), right-click opens (secondary/reveal action).
+- Q: How should flower clue visibility be toggled? → A: Cmd+click on the cell. No extra hit areas needed.
+- Q: How should line clue invisible state be toggled? → A: Cmd+click on the hit area (changed from Option-click to avoid conflict with ground truth toggle).
+- Q: Should cell and line contiguity be independently toggleable? → A: Yes. Separate "Cell contiguity" and "Line contiguity" checkboxes.
+- Q: Should interior missing cells along a diagonal show line clues? → A: Yes, but only if the next cell in the downward direction is active. Interior clues show partial counts from that point forward. All labels face downward.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -55,13 +60,15 @@ As a developer, I want to interact with cells beyond normal game rules — openi
 
 **Acceptance Scenarios**:
 
-1. **Given** a covered cell with ground truth EMPTY, **When** the user clicks it, **Then** the cell is opened and revealed as empty with its neighbor clue.
-2. **Given** a covered cell with ground truth FILLED, **When** the user clicks it, **Then** the mistake counter increments and the cell stays COVERED (the player does not learn which cells are filled from mistakes).
-3. **Given** a covered cell, **When** the user right-clicks it, **Then** the cell is marked as filled (blue) if ground truth is FILLED; if ground truth is EMPTY, the mistake counter increments and the cell stays COVERED.
-4. **Given** any cell (covered, open, or marked), **When** the user Option+clicks it, **Then** the cell's ground truth toggles between empty and filled, the visual state updates to match the new ground truth (unless COVERED), and all affected clues (neighbor, flower, line) recompute and update on the grid immediately.
-5. **Given** an open or marked cell, **When** the user Option+right-clicks it, **Then** the cell returns to the covered state.
-6. **Given** any cell, **When** the user Option+Shift+clicks it, **Then** the cell is removed from the grid (made missing) or restored as an empty revealed cell if already missing. All surrounding clues recompute.
-7. **Given** a cell whose ground truth was toggled, **When** examining neighboring cells' clues, **Then** all neighbor clues, flower clues, and line clues reflect the updated ground truth.
+1. **Given** a covered cell with ground truth FILLED, **When** the user clicks it, **Then** the cell is marked as filled (blue).
+2. **Given** a covered cell with ground truth EMPTY, **When** the user clicks it, **Then** the mistake counter increments and the cell stays COVERED.
+3. **Given** a covered cell with ground truth EMPTY, **When** the user right-clicks it, **Then** the cell is opened and revealed as empty with its neighbor clue.
+4. **Given** a covered cell with ground truth FILLED, **When** the user right-clicks it, **Then** the mistake counter increments and the cell stays COVERED (the player does not learn which cells are filled from mistakes).
+5. **Given** any cell (covered, open, or marked), **When** the user Option+clicks it, **Then** the cell's ground truth toggles between empty and filled, the visual state updates to match the new ground truth (unless COVERED), and all affected clues (neighbor, flower, line) recompute and update on the grid immediately.
+6. **Given** an open or marked cell, **When** the user Option+right-clicks it, **Then** the cell returns to the covered state.
+7. **Given** any cell, **When** the user Option+Shift+clicks it, **Then** the cell is removed from the grid (made missing) or restored as an empty revealed cell if already missing. All surrounding clues recompute.
+8. **Given** a filled cell with a visible flower clue, **When** the user Cmd+clicks it, **Then** the flower clue is hidden. Cmd+clicking again restores it.
+9. **Given** a cell whose ground truth was toggled, **When** examining neighboring cells' clues, **Then** all neighbor clues, flower clues, and line clues reflect the updated ground truth.
 
 ---
 
@@ -175,20 +182,24 @@ As a developer, I want to control the visibility of individual line clues — sh
 - **FR-014**: The random grid generator MUST accept a configurable fill density (percentage of cells that are filled), defaulting to approximately 33%.
 - **FR-015**: System MUST track and display the count of remaining unfound filled cells (the REMAINING counter).
 - **FR-016**: System MUST track and display a mistake counter.
-- **FR-017**: Clicking a covered cell MUST open it. If the cell's ground truth is empty, it reveals as open empty with its neighbor clue. If the cell's ground truth is filled, the mistake counter increments and the cell stays COVERED.
-- **FR-018**: Right-clicking a covered cell MUST mark it as filled (blue) if ground truth is FILLED. If ground truth is EMPTY, the mistake counter increments and the cell stays COVERED. The macOS context menu MUST be suppressed via `preventDefault()`.
+- **FR-017**: Clicking a covered cell MUST mark it as filled (blue) if ground truth is FILLED. If ground truth is EMPTY, the mistake counter increments and the cell stays COVERED.
+- **FR-018**: Right-clicking a covered cell MUST open it. If the cell's ground truth is empty, it reveals as open empty with its neighbor clue. If the cell's ground truth is filled, the mistake counter increments and the cell stays COVERED. The macOS context menu MUST be suppressed via `preventDefault()`.
 - **FR-019**: Option+clicking any cell MUST toggle its ground truth between empty and filled, update the visual state to match (unless COVERED), and immediately recompute and update all affected clues (neighbor, flower, and line).
 - **FR-020**: Option+right-clicking an open or marked cell MUST return it to the covered state.
-- **FR-021**: System MUST provide a toggle control for contiguity hint notation. When enabled, neighbor and line clues display `{n}` (contiguous) and `-n-` (discontiguous) where applicable. When disabled, all clues display as plain numbers. `?` (NO_CLUE) MUST always render regardless of toggle state.
+- **FR-021**: System MUST provide separate toggle controls for cell contiguity and line contiguity notation. When enabled, clues display `{n}` (contiguous) and `-n-` (discontiguous) where applicable. When disabled, clues display as plain numbers. `?` (NO_CLUE) MUST always render regardless of toggle state.
 - **FR-022**: Contiguity hint toggle MUST be enabled by default.
 - **FR-023**: When a cell's ground truth is toggled (FR-019), clue recomputation MUST be immediate (same frame) with no perceptible delay.
 - **FR-024**: Grids MUST load in a fully revealed state by default (all cells showing their true state and clues).
 - **FR-025**: System MUST provide a "cover all" action that sets all cells to the covered state, enabling game-like testing from the revealed default.
 - **FR-026**: Option+Shift+clicking any cell MUST toggle it between present and missing. Missing cells are removed from the grid; clicking a missing position restores it as an empty revealed cell. All surrounding clues MUST recompute.
-- **FR-027**: Line clues MUST support four display states: invisible, visible, visible-with-line, and dimmed. Left-click on the hit area toggles the guide line. Right-click toggles dimmed. Option-click toggles invisible (saving/restoring previous state).
+- **FR-027**: Line clues MUST support four display states: invisible, visible, visible-with-line, and dimmed. Left-click on the hit area toggles the guide line. Right-click toggles dimmed. Cmd+click toggles invisible (saving/restoring previous state).
 - **FR-028**: Line clue hit areas MUST be triangle-shaped wedges within the missing hex cell where the label sits, pointing toward the grid. Hit areas MUST NOT overlap grid cells.
 - **FR-029**: Guide lines MUST be 30% opaque white, 2px wide, extending from edge-to-edge of the first and last cells along the axis direction.
 - **FR-030**: Text selection MUST be disabled on the grid container to prevent accidental selection during gameplay.
+- **FR-031**: Flower clues MUST support visible/invisible toggle via Cmd+click on the cell. No extra hit areas — the cell hex polygon handles the click.
+- **FR-032**: Interior line clue labels MUST appear at missing cells along a diagonal where the adjacent active cell is in the "downward" direction. Interior labels show partial counts from that point to the end of the diagonal. All labels face downward (describing cells going down/down-right/down-left).
+- **FR-033**: System MUST provide debug toggle checkboxes: Cell contiguity, Line contiguity (independent), Hit areas (show/hide triangle outlines), and Select (click highlights cells/hit areas in yellow for inspection).
+- **FR-034**: When the Select toggle is unchecked, any active yellow selection highlight MUST be removed.
 
 ### Key Entities
 

@@ -79,11 +79,12 @@ All interactions use left-click or right-click with modifier keys:
 
 | Action | Input | Behavior |
 |--------|-------|----------|
-| Open (reveal) | Click | Reveals cell. If ground truth is FILLED → mistake (cell stays COVERED). |
-| Mark as filled | Right-click | Marks cell blue. If ground truth is EMPTY → mistake (cell stays COVERED). |
+| Mark as filled | Click | Marks cell blue. If ground truth is EMPTY → mistake (cell stays COVERED). |
+| Open (reveal) | Right-click | Reveals cell. If ground truth is FILLED → mistake (cell stays COVERED). |
 | Toggle ground truth | Option+click | Switches FILLED↔EMPTY. Visual state updates to match (unless COVERED). All clues recompute. |
 | Re-cover | Option+right-click | Returns cell to COVERED state. |
 | Toggle missing | Option+Shift+click | Removes cell from grid (missing) or restores it as EMPTY. |
+| Toggle clue visibility | Cmd+click | Toggles flower clue visibility on filled cells. |
 
 **Mistake behavior**: mistakes increment the counter but the cell stays COVERED — the player doesn't learn which cells are filled from mistakes.
 
@@ -99,7 +100,7 @@ All interactions use left-click or right-click with modifier keys:
 |--------|-------|--------|
 | Toggle guide line | Click on hit area | visible ↔ visible-with-line |
 | Toggle dimmed | Right-click on hit area | visible/visible-with-line → dimmed, dimmed → visible |
-| Toggle invisible | Option-click on hit area | saves state → invisible, or restores saved state |
+| Toggle invisible | Cmd+click on hit area | saves state → invisible, or restores saved state |
 
 ### SVG Rendering
 
@@ -125,16 +126,30 @@ All interactions use left-click or right-click with modifier keys:
 
 ### Controls UI
 
-Single row of controls: grid selector dropdown, Restart button, Cover All button, Contiguity checkbox, separator, width/height number inputs, density slider with percentage label, Random button.
+Single row of controls: grid selector dropdown, Restart button, Cover All button, Cell contiguity checkbox, Line contiguity checkbox, Hit areas checkbox, Select checkbox, separator, width/height number inputs, density slider with percentage label, Random button.
+
+**Debug toggles**:
+- **Cell contiguity**: toggles `{n}`/`-n-` notation on neighbor clues
+- **Line contiguity**: independent toggle for contiguity notation on line clues
+- **Hit areas**: shows/hides triangle outlines on line clue hit areas
+- **Select**: clicking cells/hit areas highlights them in yellow for inspection instead of performing actions
+
+### Flower Clue Visibility
+
+- Cmd+click on a filled cell toggles its flower clue between visible and hidden.
+- No extra SVG elements needed — the cell hex polygon handles the click.
+- Hidden flower clue state stored as a `Set<string>` of coordKeys in main.ts.
+- State resets when switching grids.
 
 ### Test Grids
 
-5 predefined grids:
+6 predefined grids:
 1. **Basic Neighbor Clues** — 3×3, 7 cells, 2 missing, mix of filled/empty
 2. **Flower Clues** — 8×5, 36 cells, interior filled cluster
 3. **Line Clues** — 5×6, vertical + diagonal filled lines
 4. **Large Grid** — 10×7, 62 cells, scattered fills, 8 missing
 5. **Tiny 3-Cell** — 3×1, minimal grid
+6. **Really Large Grid** — 30×20, ~8% missing cells, ~35% fill density, seeded PRNG for reproducibility
 
 ### Random Grid Generator
 
@@ -156,7 +171,7 @@ src/
     flower.ts       — computeFlowerClue
     line.ts         — LineClue, computeLineClue, computeAllLineClues (with gap-spanning)
   grids/
-    test-grids.ts   — 5 predefined TestGridConfig instances
+    test-grids.ts   — 6 predefined TestGridConfig instances
     random-grid.ts  — generateRandomGrid
   view/
     grid-renderer.ts    — SVG hex rendering, click handlers, missing cell placeholders
@@ -165,6 +180,15 @@ src/
     line-clue-state.ts  — LineClueState type, state transition functions
   main.ts           — app bootstrap, state management, event wiring
 ```
+
+### Interior Line Clues
+
+- Interior line clue labels appear at missing cells along a diagonal where the next cell in the **forward** direction is active (for vertical/descending) or the **predecessor** is active (for ascending).
+- All labels face "downward": they describe cells going down/down-right/down-left from the label position.
+- Interior labels show **partial counts** — the number of filled cells from that point to the end of the diagonal in the downward direction.
+- Interior label text is positioned using the adjacent active cell as anchor with the standard edge offset, not centered in the missing cell.
+- Ascending interior labels use negated offset direction (lower-left from anchor) and count backward from predecessor to diagonal start.
+- Contiguity notation on interior labels reflects the partial cell subset.
 
 ### Key Bugs Fixed
 
