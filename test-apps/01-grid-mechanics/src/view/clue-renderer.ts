@@ -34,6 +34,7 @@ function createTextElement(
   text.setAttribute('text-anchor', 'middle');
   text.setAttribute('dominant-baseline', 'central');
   text.setAttribute('font-weight', 'bold');
+  text.setAttribute('pointer-events', 'none');
   if (rotation) {
     text.setAttribute('transform', `rotate(${rotation}, ${x}, ${y})`);
   }
