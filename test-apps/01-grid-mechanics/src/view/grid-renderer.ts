@@ -20,7 +20,7 @@ function hexPoints(cx: number, cy: number, r: number): string {
   }).join(' ');
 }
 
-export type CellInteraction = 'open' | 'mark' | 'toggleTruth' | 'recover' | 'toggleMissing' | 'toggleClueVisibility' | 'toggleClueDimmed';
+export type CellInteraction = 'open' | 'mark' | 'toggleTruth' | 'recover' | 'toggleMissing' | 'toggleClueVisibility' | 'toggleClueDimmed' | 'toggleFlowerGuide';
 
 export interface CellClickHandler {
   (coord: HexCoord, interaction: CellInteraction): void;
@@ -115,6 +115,8 @@ export function renderGrid(
           onClick(coord, 'toggleMissing');
         } else if (e.altKey) {
           onClick(coord, 'toggleTruth');
+        } else if (cell.visualState === CellVisualState.MARKED_FILLED) {
+          onClick(coord, 'toggleFlowerGuide');
         } else {
           onClick(coord, 'mark');
         }

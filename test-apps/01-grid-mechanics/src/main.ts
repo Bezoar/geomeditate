@@ -15,6 +15,7 @@ let currentGrid: HexGrid;
 let lineClueStates = new Map<string, LineClueState>();
 let hiddenFlowerClues = new Set<string>();
 let dimmedFlowerClues = new Set<string>();
+let flowerGuideClues = new Set<string>();
 
 const clueOptions: ClueRenderOptions = {
   contiguityEnabled: true,
@@ -30,7 +31,7 @@ function updateHud(): void {
 
 function render(): void {
   renderGrid(currentGrid, svgEl, handleCellClick, clueOptions.selectionEnabled);
-  renderClues(currentGrid, svgEl, clueOptions, lineClueStates, hiddenFlowerClues, dimmedFlowerClues, handleLineClueInteraction);
+  renderClues(currentGrid, svgEl, clueOptions, lineClueStates, hiddenFlowerClues, dimmedFlowerClues, flowerGuideClues, handleLineClueInteraction);
   updateHud();
 }
 
@@ -57,6 +58,9 @@ function handleCellClick(coord: HexCoord, interaction: CellInteraction): void {
     case 'toggleClueDimmed':
       handleFlowerClueDimToggle(coordKey(coord));
       return;
+    case 'toggleFlowerGuide':
+      handleFlowerGuideToggle(coordKey(coord));
+      return;
   }
   render();
 }
@@ -71,6 +75,15 @@ function handleFlowerClueToggle(ck: string): void {
     hiddenFlowerClues.delete(ck);
   } else {
     hiddenFlowerClues.add(ck);
+  }
+  render();
+}
+
+function handleFlowerGuideToggle(ck: string): void {
+  if (flowerGuideClues.has(ck)) {
+    flowerGuideClues.delete(ck);
+  } else {
+    flowerGuideClues.add(ck);
   }
   render();
 }
@@ -91,6 +104,7 @@ function loadGrid(index: number): void {
   lineClueStates = new Map();
   hiddenFlowerClues = new Set();
   dimmedFlowerClues = new Set();
+  flowerGuideClues = new Set();
   render();
 }
 
@@ -101,6 +115,7 @@ function loadRandomGrid(width: number, height: number, density: number): void {
   lineClueStates = new Map();
   hiddenFlowerClues = new Set();
   dimmedFlowerClues = new Set();
+  flowerGuideClues = new Set();
   render();
 }
 

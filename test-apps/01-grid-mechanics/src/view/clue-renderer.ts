@@ -2,7 +2,7 @@ import type { HexGrid } from '../model/hex-grid';
 import { predecessor } from '../clues/line';
 import type { LineClue } from '../clues/line';
 import { CellGroundTruth, CellVisualState, ClueNotation } from '../model/hex-cell';
-import { coordKey, toPixel, stepInDirection } from '../model/hex-coord';
+import { coordKey, toPixel, stepInDirection, neighbors, radius2Positions } from '../model/hex-coord';
 import type { HexCoord, LineAxis } from '../model/hex-coord';
 import { formatNeighborClue } from '../clues/neighbor';
 import {
@@ -193,6 +193,94 @@ export interface ClueRenderOptions {
   selectionEnabled: boolean;
 }
 
+function renderFlowerGuide(
+  center: HexCoord,
+  svgContainer: SVGElement,
+): void {
+  const areaPositions = [center, ...radius2Positions(center)];
+  const areaKeys = new Set(areaPositions.map(coordKey));
+
+  // Trace boundary as a continuous polygon (filled + stroked)
+  const vtxKey = (x: number, y: number) =>
+    `${Math.round(x * 100)},${Math.round(y * 100)}`;
+  const adj = new Map<string, { x: number; y: number }>();
+
+  for (const pos of areaPositions) {
+    const { x, y } = toPixel(pos, RADIUS);
+    const nbs = neighbors(pos);
+    for (let d = 0; d < 6; d++) {
+      if (!areaKeys.has(coordKey(nbs[d]))) {
+        const a1 = (Math.PI / 180) * (60 * ((d + 5) % 6));
+        const a2 = (Math.PI / 180) * (60 * d);
+        const x1 = x + RADIUS * Math.cos(a1);
+        const y1 = y + RADIUS * Math.sin(a1);
+        const x2 = x + RADIUS * Math.cos(a2);
+        const y2 = y + RADIUS * Math.sin(a2);
+        adj.set(vtxKey(x1, y1), { x: x2, y: y2 });
+      }
+    }
+  }
+
+  if (adj.size > 0) {
+    const startKey = adj.keys().next().value!;
+    const pts: Array<{ x: number; y: number }> = [];
+    let curKey = startKey;
+    do {
+      const pt = adj.get(curKey)!;
+      pts.push(pt);
+      curKey = vtxKey(pt.x, pt.y);
+    } while (curKey !== startKey);
+
+    const STROKE_W = 4;
+
+    // Proper polygon inset: offset each edge inward by half stroke width,
+    // then intersect consecutive offset edges to find new vertices.
+    // Boundary is CW in screen coords (y-down), so inward normal is (-dy, dx).
+    const n = pts.length;
+    const insetPts: Array<{ x: number; y: number }> = [];
+    const amt = STROKE_W / 2;
+    for (let i = 0; i < n; i++) {
+      const a = pts[(i - 1 + n) % n];
+      const b = pts[i];
+      const c = pts[(i + 1) % n];
+      const dx1 = b.x - a.x, dy1 = b.y - a.y;
+      const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+      const dx2 = c.x - b.x, dy2 = c.y - b.y;
+      const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+      const nx1 = -dy1 / len1, ny1 = dx1 / len1;
+      const nx2 = -dy2 / len2, ny2 = dx2 / len2;
+      const p1x = a.x + nx1 * amt, p1y = a.y + ny1 * amt;
+      const p2x = b.x + nx2 * amt, p2y = b.y + ny2 * amt;
+      const denom = dx1 * dy2 - dy1 * dx2;
+      if (Math.abs(denom) < 1e-10) {
+        insetPts.push({ x: b.x + nx1 * amt, y: b.y + ny1 * amt });
+      } else {
+        const t = ((p2x - p1x) * dy2 - (p2y - p1y) * dx2) / denom;
+        insetPts.push({ x: p1x + t * dx1, y: p1y + t * dy1 });
+      }
+    }
+
+    const fillPoly = document.createElementNS(SVG_NS, 'polygon');
+    fillPoly.setAttribute('points', insetPts.map(p => `${p.x},${p.y}`).join(' '));
+    fillPoly.setAttribute('fill', '#ffffff');
+    fillPoly.setAttribute('fill-opacity', '0.2');
+    fillPoly.setAttribute('stroke', 'none');
+    fillPoly.setAttribute('pointer-events', 'none');
+    svgContainer.appendChild(fillPoly);
+
+    // Stroke-only outline at the boundary edge
+    const outline = document.createElementNS(SVG_NS, 'polygon');
+    outline.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+    outline.setAttribute('fill', 'none');
+    outline.setAttribute('stroke', '#ffffff');
+    outline.setAttribute('stroke-opacity', '0.4');
+    outline.setAttribute('stroke-width', String(STROKE_W));
+    outline.setAttribute('stroke-linejoin', 'round');
+    outline.setAttribute('pointer-events', 'none');
+    svgContainer.appendChild(outline);
+  }
+}
+
 export function renderClues(
   grid: HexGrid,
   svgContainer: SVGElement,
@@ -200,9 +288,19 @@ export function renderClues(
   lineClueStates: Map<string, LineClueState>,
   hiddenFlowerClues: Set<string>,
   dimmedFlowerClues: Set<string>,
+  flowerGuideClues: Set<string>,
   onLineClueInteraction?: LineClueInteraction,
 ): void {
   const { contiguityEnabled, lineContiguityEnabled, showHitAreaOutlines, selectionEnabled } = options;
+
+  // Render flower guide overlays (behind clue text)
+  for (const ck of flowerGuideClues) {
+    const cell = grid.cells.get(ck);
+    if (cell && cell.visualState === CellVisualState.MARKED_FILLED) {
+      renderFlowerGuide(cell.coord, svgContainer);
+    }
+  }
+
   // Render cell clues (neighbor and flower)
   for (const cell of grid.cells.values()) {
     const { x, y } = toPixel(cell.coord, RADIUS);
