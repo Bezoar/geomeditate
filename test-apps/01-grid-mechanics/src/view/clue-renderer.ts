@@ -1,4 +1,5 @@
 import type { HexGrid } from '../model/hex-grid';
+import { predecessor } from '../clues/line';
 import type { LineClue } from '../clues/line';
 import { CellVisualState } from '../model/hex-cell';
 import { toPixel, stepInDirection } from '../model/hex-coord';
@@ -70,35 +71,6 @@ function overlapsCell(lx: number, ly: number, grid: HexGrid): boolean {
   return false;
 }
 
-/**
- * Compute the pixel center of the missing hex cell where a line clue label sits.
- * This is one step outside the grid from the anchor cell.
- */
-function missingCellCenter(anchorCoord: HexCoord, axis: LineAxis): { x: number; y: number } {
-  // The missing cell is one step in the reverse direction from the anchor
-  // For vertical: (col, row - 1)
-  // For descending: predecessor of anchor
-  // For ascending: one step further ascending from the anchor (which is the last cell)
-  let missingCoord: HexCoord;
-  switch (axis) {
-    case 'vertical':
-      missingCoord = { col: anchorCoord.col, row: anchorCoord.row - 1 };
-      break;
-    case 'descending': {
-      // Predecessor: one step back from the start
-      const predIsEven = anchorCoord.col % 2 !== 0;
-      missingCoord = predIsEven
-        ? { col: anchorCoord.col - 1, row: anchorCoord.row }
-        : { col: anchorCoord.col - 1, row: anchorCoord.row - 1 };
-      break;
-    }
-    case 'ascending':
-      // One step further ascending from the last cell
-      missingCoord = stepInDirection(anchorCoord, 'ascending');
-      break;
-  }
-  return toPixel(missingCoord, RADIUS);
-}
 
 /**
  * Build the triangle hit area polygon points for a line clue.
@@ -240,80 +212,90 @@ export function renderClues(
   }
 
   // Render line clues with display state
-  const labelPositions: Array<{ x: number; y: number }> = [];
+  const renderedLabelPositions: Array<{ x: number; y: number }> = [];
   const LABEL_MIN_DIST = RADIUS * 0.6;
 
   for (const clue of grid.lineClues) {
     const state = getState(lineClueStates, clue);
     const key = lineClueKey(clue);
-
-    // For ascending lines, anchor at the top (last cell); others at start
-    const anchorCoord =
-      clue.axis === 'ascending'
-        ? clue.cells[clue.cells.length - 1]
-        : clue.startCoord;
-
-    const { x, y } = toPixel(anchorCoord, RADIUS);
-    const { dx, dy, rotation } = lineClueOffset(clue.axis);
-    const lx = x + dx;
-    const ly = y + dy;
-
-    // Skip if overlapping an occupied cell
-    const overlaps = overlapsCell(lx, ly, grid);
-
-    // Skip if overlapping a previously placed label
-    const tooClose = !overlaps && labelPositions.some(p => {
-      const px = lx - p.x;
-      const py = ly - p.y;
-      return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
-    });
-
-    const canRenderLabel = !overlaps && !tooClose;
-    if (canRenderLabel) {
-      labelPositions.push({ x: lx, y: ly });
-    }
+    const { rotation } = lineClueOffset(clue.axis);
 
     // Render guide line (behind text) if visible-with-line
     if (state.visibility === 'visible-with-line') {
       renderGuideLine(clue, svgContainer);
     }
 
-    // Render label text based on visibility
-    if (canRenderLabel && state.visibility !== 'invisible') {
-      const opacity = state.visibility === 'dimmed' ? DIMMED_OPACITY : undefined;
-      const lineLabel = formatNeighborClue(clue.value, clue.notation, contiguityEnabled);
-      svgContainer.appendChild(
-        createTextElement(lx, ly, lineLabel, '#95a5a6', 10, rotation, opacity),
-      );
+    // Collect all label positions: the edge position + all missing positions along the diagonal
+    const allLabelCoords: HexCoord[] = [];
+
+    // Edge label position (predecessor of start, or successor of last for ascending)
+    const edgeCoord =
+      clue.axis === 'ascending'
+        ? stepInDirection(clue.cells[clue.cells.length - 1], 'ascending')
+        : predecessor(clue.startCoord, clue.axis);
+    allLabelCoords.push(edgeCoord);
+
+    // Interior missing positions along the diagonal
+    for (const mp of clue.labelPositions) {
+      allLabelCoords.push(mp);
     }
 
-    // Render hit area triangle in the missing cell where the label sits
-    if (onLineClueInteraction && canRenderLabel) {
-      const mc = missingCellCenter(anchorCoord, clue.axis);
-      const hitArea = document.createElementNS(SVG_NS, 'polygon');
-      hitArea.setAttribute('points', clueHitTriangle(mc.x, mc.y, clue.axis));
-      hitArea.setAttribute('fill', 'transparent');
-      hitArea.setAttribute('stroke', '#ffffff');
-      hitArea.setAttribute('stroke-opacity', '0.2');
-      hitArea.setAttribute('stroke-width', '1');
-      hitArea.style.cursor = 'pointer';
+    // Render a label + hit area at each position
+    const lineLabel = formatNeighborClue(clue.value, clue.notation, contiguityEnabled);
 
-      hitArea.addEventListener('click', (e: MouseEvent) => {
-        e.stopPropagation();
-        if (e.altKey) {
-          onLineClueInteraction(key, toggleInvisible(state));
-        } else {
-          onLineClueInteraction(key, toggleGuideLine(state));
-        }
+    for (const labelCoord of allLabelCoords) {
+      const lp = toPixel(labelCoord, RADIUS);
+      const lx = lp.x;
+      const ly = lp.y;
+
+      // Skip if overlapping an occupied cell
+      if (overlapsCell(lx, ly, grid)) continue;
+
+      // Skip if overlapping a previously placed label
+      const tooClose = renderedLabelPositions.some(p => {
+        const px = lx - p.x;
+        const py = ly - p.y;
+        return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
       });
+      if (tooClose) continue;
 
-      hitArea.addEventListener('contextmenu', (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onLineClueInteraction(key, toggleDimmed(state));
-      });
+      renderedLabelPositions.push({ x: lx, y: ly });
 
-      svgContainer.appendChild(hitArea);
+      // Render label text based on visibility
+      if (state.visibility !== 'invisible') {
+        const opacity = state.visibility === 'dimmed' ? DIMMED_OPACITY : undefined;
+        svgContainer.appendChild(
+          createTextElement(lx, ly, lineLabel, '#95a5a6', 10, rotation, opacity),
+        );
+      }
+
+      // Render hit area triangle centered on this missing cell
+      if (onLineClueInteraction) {
+        const hitArea = document.createElementNS(SVG_NS, 'polygon');
+        hitArea.setAttribute('points', clueHitTriangle(lx, ly, clue.axis));
+        hitArea.setAttribute('fill', 'transparent');
+        hitArea.setAttribute('stroke', '#ffffff');
+        hitArea.setAttribute('stroke-opacity', '0.2');
+        hitArea.setAttribute('stroke-width', '1');
+        hitArea.style.cursor = 'pointer';
+
+        hitArea.addEventListener('click', (e: MouseEvent) => {
+          e.stopPropagation();
+          if (e.altKey) {
+            onLineClueInteraction(key, toggleInvisible(state));
+          } else {
+            onLineClueInteraction(key, toggleGuideLine(state));
+          }
+        });
+
+        hitArea.addEventListener('contextmenu', (e: MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onLineClueInteraction(key, toggleDimmed(state));
+        });
+
+        svgContainer.appendChild(hitArea);
+      }
     }
   }
 }
