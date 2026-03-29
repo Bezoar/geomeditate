@@ -84,11 +84,13 @@ export class HexGrid {
     if (!cell) return;
 
     const result = openCellFn(cell);
+    if (result.isMistake) {
+      this.mistakeCount++;
+      return; // mistake: cell stays covered
+    }
     if (result.cell === cell) return; // no-op
 
     this.cells.set(key, result.cell);
-    if (result.isMistake) this.mistakeCount++;
-    if (cell.groundTruth === CellGroundTruth.FILLED) this.remainingCount--;
   }
 
   markCell(coord: HexCoord): void {
@@ -97,10 +99,13 @@ export class HexGrid {
     if (!cell) return;
 
     const result = markCellFn(cell);
+    if (result.isMistake) {
+      this.mistakeCount++;
+      return; // mistake: cell stays covered
+    }
     if (result.cell === cell) return; // no-op
 
     this.cells.set(key, result.cell);
-    if (result.isMistake) this.mistakeCount++;
     if (cell.groundTruth === CellGroundTruth.FILLED) this.remainingCount--;
   }
 

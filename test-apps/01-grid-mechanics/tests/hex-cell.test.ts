@@ -41,10 +41,10 @@ describe('openCell', () => {
     expect(result.isMistake).toBe(false);
   });
 
-  it('opens a covered filled cell to MARKED_FILLED and flags mistake', () => {
+  it('keeps a covered filled cell COVERED and flags mistake', () => {
     const cell = createCell({ col: 0, row: 0 }, CellGroundTruth.FILLED);
     const result = openCell(cell);
-    expect(result.cell.visualState).toBe(CellVisualState.MARKED_FILLED);
+    expect(result.cell.visualState).toBe(CellVisualState.COVERED);
     expect(result.isMistake).toBe(true);
   });
 
@@ -85,10 +85,10 @@ describe('markCell', () => {
     expect(result.isMistake).toBe(false);
   });
 
-  it('marks a covered empty cell as MARKED_FILLED and flags mistake', () => {
+  it('keeps a covered empty cell COVERED and flags mistake', () => {
     const cell = createCell({ col: 0, row: 0 }, CellGroundTruth.EMPTY);
     const result = markCell(cell);
-    expect(result.cell.visualState).toBe(CellVisualState.MARKED_FILLED);
+    expect(result.cell.visualState).toBe(CellVisualState.COVERED);
     expect(result.isMistake).toBe(true);
   });
 

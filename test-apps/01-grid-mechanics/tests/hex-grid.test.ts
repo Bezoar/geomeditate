@@ -490,10 +490,10 @@ describe('HexGrid.openCell()', () => {
     expect(grid.cells.get('1,0')!.visualState).toBe(CellVisualState.OPEN_EMPTY);
   });
 
-  it('opens a covered FILLED cell to MARKED_FILLED', () => {
+  it('keeps a covered FILLED cell COVERED on mistake', () => {
     const grid = coveredGrid();
     grid.openCell({ col: 0, row: 0 });
-    expect(grid.cells.get('0,0')!.visualState).toBe(CellVisualState.MARKED_FILLED);
+    expect(grid.cells.get('0,0')!.visualState).toBe(CellVisualState.COVERED);
   });
 
   it('is a no-op on an already OPEN_EMPTY cell', () => {
@@ -513,11 +513,11 @@ describe('HexGrid.openCell()', () => {
     expect(grid.mistakeCount).toBe(mistakesBefore);
   });
 
-  it('decrements remainingCount when opening a FILLED cell', () => {
+  it('does not change remainingCount when opening a FILLED cell (mistake)', () => {
     const grid = coveredGrid();
     const before = grid.remainingCount;
-    grid.openCell({ col: 0, row: 0 }); // FILLED cell
-    expect(grid.remainingCount).toBe(before - 1);
+    grid.openCell({ col: 0, row: 0 }); // FILLED cell — mistake, stays covered
+    expect(grid.remainingCount).toBe(before);
   });
 
   it('does not change remainingCount when opening an EMPTY cell', () => {
@@ -537,10 +537,10 @@ describe('HexGrid.markCell()', () => {
     expect(grid.cells.get('1,1')!.visualState).toBe(CellVisualState.MARKED_FILLED);
   });
 
-  it('marks a covered EMPTY cell as MARKED_FILLED', () => {
+  it('keeps a covered EMPTY cell COVERED on mistake', () => {
     const grid = coveredGrid();
     grid.markCell({ col: 1, row: 0 });
-    expect(grid.cells.get('1,0')!.visualState).toBe(CellVisualState.MARKED_FILLED);
+    expect(grid.cells.get('1,0')!.visualState).toBe(CellVisualState.COVERED);
   });
 
   it('is a no-op on an already OPEN_EMPTY cell', () => {

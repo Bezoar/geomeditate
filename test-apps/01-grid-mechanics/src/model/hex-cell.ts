@@ -68,8 +68,9 @@ export function openCell(cell: HexCell): CellActionResult {
       isMistake: false,
     };
   }
+  // Mistake: cell is filled, stays covered
   return {
-    cell: { ...cell, visualState: CellVisualState.MARKED_FILLED },
+    cell,
     isMistake: true,
   };
 }
@@ -84,10 +85,16 @@ export function markCell(cell: HexCell): CellActionResult {
   if (cell.visualState !== CellVisualState.COVERED) {
     return { cell, isMistake: false };
   }
-  const isMistake = cell.groundTruth === CellGroundTruth.EMPTY;
+  if (cell.groundTruth === CellGroundTruth.FILLED) {
+    return {
+      cell: { ...cell, visualState: CellVisualState.MARKED_FILLED },
+      isMistake: false,
+    };
+  }
+  // Mistake: cell is empty, stays covered
   return {
-    cell: { ...cell, visualState: CellVisualState.MARKED_FILLED },
-    isMistake,
+    cell,
+    isMistake: true,
   };
 }
 

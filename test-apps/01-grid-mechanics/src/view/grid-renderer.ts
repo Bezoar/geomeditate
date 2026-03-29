@@ -74,14 +74,20 @@ export function renderGrid(
     if (onClick) {
       group.addEventListener('click', (e: MouseEvent) => {
         const coord = parseCoordKey(key);
-        if (e.altKey && e.shiftKey) {
-          onClick(coord, 'recover');
-        } else if (e.altKey) {
+        if (e.altKey) {
           onClick(coord, 'toggleTruth');
-        } else if (e.shiftKey) {
-          onClick(coord, 'mark');
         } else {
           onClick(coord, 'open');
+        }
+      });
+
+      group.addEventListener('contextmenu', (e: MouseEvent) => {
+        e.preventDefault();
+        const coord = parseCoordKey(key);
+        if (e.altKey) {
+          onClick(coord, 'recover');
+        } else {
+          onClick(coord, 'mark');
         }
       });
     }
