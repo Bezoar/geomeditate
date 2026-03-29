@@ -238,7 +238,7 @@ export function renderClues(
           flowerText.setAttribute('pointer-events', 'auto');
           flowerText.style.cursor = 'pointer';
           flowerText.addEventListener('click', (e: MouseEvent) => {
-            if (e.altKey) {
+            if (e.metaKey) {
               e.stopPropagation();
               onFlowerClueToggle(ck);
             }
@@ -246,15 +246,15 @@ export function renderClues(
         }
         svgContainer.appendChild(flowerText);
       } else if (onFlowerClueToggle) {
-        // Hidden: render invisible circle hit area to restore on Option-click
+        // Hidden: full-cell hit area to restore on Cmd+click
         const restore = document.createElementNS(SVG_NS, 'circle');
         restore.setAttribute('cx', String(x));
         restore.setAttribute('cy', String(y));
-        restore.setAttribute('r', String(RADIUS * 0.4));
+        restore.setAttribute('r', String(RADIUS * 0.8));
         restore.setAttribute('fill', 'transparent');
         restore.style.cursor = 'pointer';
         restore.addEventListener('click', (e: MouseEvent) => {
-          if (e.altKey) {
+          if (e.metaKey) {
             e.stopPropagation();
             onFlowerClueToggle(ck);
           }
@@ -413,7 +413,7 @@ function renderLineLabel(
       return;
     }
     if (onLineClueInteraction) {
-      if (e.altKey) {
+      if (e.metaKey) {
         onLineClueInteraction(key, toggleInvisible(state));
       } else {
         onLineClueInteraction(key, toggleGuideLine(state));
