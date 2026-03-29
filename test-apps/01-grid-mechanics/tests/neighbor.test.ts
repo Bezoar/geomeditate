@@ -362,3 +362,56 @@ describe('formatNeighborClue', () => {
     expect(formatNeighborClue(5, ClueNotation.NO_CLUE)).toBe('?');
   });
 });
+
+// --- T040: Contiguity toggle tests ---
+
+describe('formatNeighborClue with contiguityEnabled', () => {
+  describe('when contiguityEnabled is true (default)', () => {
+    it('formats CONTIGUOUS with curly braces', () => {
+      expect(formatNeighborClue(3, ClueNotation.CONTIGUOUS, true)).toBe('{3}');
+    });
+
+    it('formats DISCONTIGUOUS with dashes', () => {
+      expect(formatNeighborClue(4, ClueNotation.DISCONTIGUOUS, true)).toBe('-4-');
+    });
+
+    it('formats PLAIN as bare number', () => {
+      expect(formatNeighborClue(2, ClueNotation.PLAIN, true)).toBe('2');
+    });
+
+    it('formats NO_CLUE as question mark', () => {
+      expect(formatNeighborClue(5, ClueNotation.NO_CLUE, true)).toBe('?');
+    });
+
+    it('defaults contiguityEnabled to true when omitted', () => {
+      expect(formatNeighborClue(3, ClueNotation.CONTIGUOUS)).toBe('{3}');
+      expect(formatNeighborClue(4, ClueNotation.DISCONTIGUOUS)).toBe('-4-');
+    });
+  });
+
+  describe('when contiguityEnabled is false', () => {
+    it('formats CONTIGUOUS as plain number', () => {
+      expect(formatNeighborClue(3, ClueNotation.CONTIGUOUS, false)).toBe('3');
+    });
+
+    it('formats DISCONTIGUOUS as plain number', () => {
+      expect(formatNeighborClue(4, ClueNotation.DISCONTIGUOUS, false)).toBe('4');
+    });
+
+    it('formats PLAIN as bare number (unchanged)', () => {
+      expect(formatNeighborClue(2, ClueNotation.PLAIN, false)).toBe('2');
+    });
+
+    it('formats NO_CLUE as question mark (always)', () => {
+      expect(formatNeighborClue(5, ClueNotation.NO_CLUE, false)).toBe('?');
+    });
+
+    it('formats CONTIGUOUS with value 0 as plain number', () => {
+      expect(formatNeighborClue(0, ClueNotation.CONTIGUOUS, false)).toBe('0');
+    });
+
+    it('formats DISCONTIGUOUS with value 6 as plain number', () => {
+      expect(formatNeighborClue(6, ClueNotation.DISCONTIGUOUS, false)).toBe('6');
+    });
+  });
+});

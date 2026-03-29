@@ -48,15 +48,17 @@ export function computeContiguity(coord: HexCoord, cellMap: Map<string, HexCell>
     : ClueNotation.DISCONTIGUOUS;
 }
 
-export function formatNeighborClue(value: number, notation: ClueNotation): string {
+export function formatNeighborClue(value: number, notation: ClueNotation, contiguityEnabled: boolean = true): string {
+  if (notation === ClueNotation.NO_CLUE) {
+    return '?';
+  }
+  if (!contiguityEnabled || notation === ClueNotation.PLAIN) {
+    return String(value);
+  }
   switch (notation) {
-    case ClueNotation.PLAIN:
-      return String(value);
     case ClueNotation.CONTIGUOUS:
       return `{${value}}`;
     case ClueNotation.DISCONTIGUOUS:
       return `-${value}-`;
-    case ClueNotation.NO_CLUE:
-      return '?';
   }
 }

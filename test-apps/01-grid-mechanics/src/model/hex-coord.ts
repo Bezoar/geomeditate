@@ -49,7 +49,7 @@ export type LineAxis = 'vertical' | 'ascending' | 'descending';
  * - ascending: upper-right neighbor (index 0 in offset table)
  * - descending: right neighbor (index 1 in offset table)
  */
-function stepInDirection(coord: HexCoord, axis: LineAxis): HexCoord {
+export function stepInDirection(coord: HexCoord, axis: LineAxis): HexCoord {
   if (axis === 'vertical') {
     return { col: coord.col, row: coord.row + 1 };
   }

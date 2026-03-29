@@ -60,6 +60,14 @@ export class HexGrid {
     }
   }
 
+  restart(): void {
+    for (const [key, cell] of this.cells) {
+      this.cells.set(key, revealCell(cell));
+    }
+    this.remainingCount = 0;
+    this.mistakeCount = 0;
+  }
+
   coverAll(): void {
     let filledCount = 0;
     for (const [key, cell] of this.cells) {

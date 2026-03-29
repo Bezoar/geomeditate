@@ -842,3 +842,70 @@ describe('HexGrid.coverAll()', () => {
     expect(grid.mistakeCount).toBe(0);
   });
 });
+
+// --- T048: restart() ---
+
+describe('HexGrid.restart()', () => {
+  it('resets all cells to initial revealed state after interactions', () => {
+    const grid = coveredGrid();
+    grid.openCell({ col: 1, row: 0 });
+    grid.markCell({ col: 1, row: 1 });
+    grid.restart();
+
+    for (const cell of grid.cells.values()) {
+      if (cell.groundTruth === CellGroundTruth.EMPTY) {
+        expect(cell.visualState).toBe(CellVisualState.OPEN_EMPTY);
+      } else {
+        expect(cell.visualState).toBe(CellVisualState.MARKED_FILLED);
+      }
+    }
+  });
+
+  it('resets EMPTY cells to OPEN_EMPTY', () => {
+    const grid = coveredGrid();
+    grid.restart();
+    expect(grid.cells.get('1,0')!.visualState).toBe(CellVisualState.OPEN_EMPTY);
+  });
+
+  it('resets FILLED cells to MARKED_FILLED', () => {
+    const grid = coveredGrid();
+    grid.restart();
+    expect(grid.cells.get('0,0')!.visualState).toBe(CellVisualState.MARKED_FILLED);
+  });
+
+  it('resets mistakeCount to 0', () => {
+    const grid = coveredGrid();
+    grid.openCell({ col: 0, row: 0 });
+    expect(grid.mistakeCount).toBe(1);
+    grid.restart();
+    expect(grid.mistakeCount).toBe(0);
+  });
+
+  it('resets remainingCount to 0 (all revealed)', () => {
+    const grid = coveredGrid();
+    expect(grid.remainingCount).toBe(2);
+    grid.restart();
+    expect(grid.remainingCount).toBe(0);
+  });
+
+  it('preserves clue values after restart', () => {
+    const grid = new HexGrid(interactionConfig);
+    grid.computeAllClues();
+    const cluesBefore = new Map<string, { neighbor: number | null; flower: number | null }>();
+    for (const [key, cell] of grid.cells) {
+      cluesBefore.set(key, {
+        neighbor: cell.neighborClueValue,
+        flower: cell.flowerClueValue,
+      });
+    }
+
+    grid.coverAll();
+    grid.restart();
+
+    for (const [key, cell] of grid.cells) {
+      const before = cluesBefore.get(key)!;
+      expect(cell.neighborClueValue).toBe(before.neighbor);
+      expect(cell.flowerClueValue).toBe(before.flower);
+    }
+  });
+});

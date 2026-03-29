@@ -61,8 +61,8 @@ describe('computeLineClue', () => {
       expect(clue.value).toBe(0);
     });
 
-    it('stops at a gap (missing cell breaks the line)', () => {
-      // Gap at (2,2): line should only include (2,0) and (2,1)
+    it('spans gaps in the line (missing cells are skipped)', () => {
+      // Gap at (2,2): line still includes cells on both sides
       const cellMap = buildCellMap([
         [2, 0, F],
         [2, 1, F],
@@ -70,8 +70,8 @@ describe('computeLineClue', () => {
         [2, 3, F],
       ]);
       const clue = computeLineClue({ col: 2, row: 0 }, 'vertical', cellMap);
-      expect(clue.cells.map(coordKey)).toEqual(['2,0', '2,1']);
-      expect(clue.value).toBe(2);
+      expect(clue.cells.map(coordKey)).toEqual(['2,0', '2,1', '2,3']);
+      expect(clue.value).toBe(3);
     });
   });
 
@@ -94,8 +94,8 @@ describe('computeLineClue', () => {
       expect(clue.value).toBe(3);
     });
 
-    it('stops at a gap in ascending line', () => {
-      // Missing (2,0) breaks the line after (1,0)
+    it('spans gaps in ascending line', () => {
+      // Missing (2,0): line still includes cells on both sides
       const cellMap = buildCellMap([
         [0, 1, F],
         [1, 0, F],
@@ -103,8 +103,8 @@ describe('computeLineClue', () => {
         [3, -1, F],
       ]);
       const clue = computeLineClue({ col: 0, row: 1 }, 'ascending', cellMap);
-      expect(clue.cells.map(coordKey)).toEqual(['0,1', '1,0']);
-      expect(clue.value).toBe(2);
+      expect(clue.cells.map(coordKey)).toEqual(['0,1', '1,0', '3,-1']);
+      expect(clue.value).toBe(3);
     });
   });
 
@@ -127,8 +127,8 @@ describe('computeLineClue', () => {
       expect(clue.value).toBe(2);
     });
 
-    it('stops at a gap in descending line', () => {
-      // Missing (2,1) breaks the line after (1,0)
+    it('spans gaps in descending line', () => {
+      // Missing (2,1): line still includes cells on both sides
       const cellMap = buildCellMap([
         [0, 0, F],
         [1, 0, F],
@@ -136,8 +136,8 @@ describe('computeLineClue', () => {
         [3, 1, F],
       ]);
       const clue = computeLineClue({ col: 0, row: 0 }, 'descending', cellMap);
-      expect(clue.cells.map(coordKey)).toEqual(['0,0', '1,0']);
-      expect(clue.value).toBe(2);
+      expect(clue.cells.map(coordKey)).toEqual(['0,0', '1,0', '3,1']);
+      expect(clue.value).toBe(3);
     });
   });
 
@@ -211,7 +211,7 @@ describe('computeAllLineClues', () => {
       expect(col1Line.value).toBe(2);
     });
 
-    it('creates separate vertical lines when a column has a gap', () => {
+    it('spans gaps in a column (one line clue for the whole diagonal)', () => {
       // Col 0: rows 0, 1, then gap at 2, then row 3
       const cellMap = buildCellMap([
         [0, 0, F],
@@ -222,11 +222,14 @@ describe('computeAllLineClues', () => {
       const clues = computeAllLineClues(cellMap);
       const verticals = clues.filter(c => c.axis === 'vertical');
 
-      // Should find two vertical starts: (0,0) and (0,3)
-      // (0,3) has no predecessor at (0,2) so it's a start
-      const starts = verticals.map(c => coordKey(c.startCoord)).sort();
+      // Should find ONE vertical line starting at (0,0) spanning the gap
+      const starts = verticals.map(c => coordKey(c.startCoord));
       expect(starts).toContain('0,0');
-      expect(starts).toContain('0,3');
+      expect(starts).not.toContain('0,3');
+
+      const line = verticals.find(c => coordKey(c.startCoord) === '0,0')!;
+      expect(line.cells).toHaveLength(3); // (0,0), (0,1), (0,3) — gap skipped
+      expect(line.value).toBe(3); // all 3 are filled
     });
   });
 

@@ -3,6 +3,7 @@ import { CellVisualState } from '../model/hex-cell';
 import { toPixel } from '../model/hex-coord';
 import type { LineAxis } from '../model/hex-coord';
 import { formatNeighborClue } from '../clues/neighbor';
+import type { LineClue } from '../clues/line';
 
 const RADIUS = 24;
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -42,10 +43,10 @@ function lineClueOffset(axis: LineAxis): { dx: number; dy: number; rotation: num
     case 'vertical':
       return { dx: 0, dy: -rowStep * 0.65, rotation: 0 };
     case 'ascending':
-      // Upper-right edge slopes at 60°, offset along edge normal to match vertical gap
+      // Upper-right edge, text parallel to edge
       return { dx: colStep * 0.65, dy: -rowStep * 0.325, rotation: 60 };
     case 'descending':
-      // Upper-left edge slopes at -60°, offset along edge normal to match vertical gap
+      // Upper-left edge, text parallel to edge
       return { dx: -colStep * 0.65, dy: -rowStep * 0.325, rotation: -60 };
   }
 }
@@ -65,7 +66,7 @@ function overlapsCell(
   return false;
 }
 
-export function renderClues(grid: HexGrid, svgContainer: SVGElement): void {
+export function renderClues(grid: HexGrid, svgContainer: SVGElement, contiguityEnabled: boolean = true): void {
   // Render cell clues (neighbor and flower)
   for (const cell of grid.cells.values()) {
     const { x, y } = toPixel(cell.coord, RADIUS);
@@ -78,6 +79,7 @@ export function renderClues(grid: HexGrid, svgContainer: SVGElement): void {
       const label = formatNeighborClue(
         cell.neighborClueValue,
         cell.neighborClueNotation,
+        contiguityEnabled,
       );
       svgContainer.appendChild(
         createTextElement(x, y, label, '#ffffff', 10),
@@ -94,7 +96,10 @@ export function renderClues(grid: HexGrid, svgContainer: SVGElement): void {
     }
   }
 
-  // Render line clues — only where the label lands on an unoccupied hex position
+  // Render line clues — skip labels that overlap cells or other labels
+  const labelPositions: Array<{ x: number; y: number }> = [];
+  const LABEL_MIN_DIST = RADIUS * 0.6;
+
   for (const clue of grid.lineClues) {
     // For ascending lines, anchor at the top (last cell); others at start
     const anchorCoord =
@@ -104,11 +109,24 @@ export function renderClues(grid: HexGrid, svgContainer: SVGElement): void {
 
     const { x, y } = toPixel(anchorCoord, RADIUS);
     const { dx, dy, rotation } = lineClueOffset(clue.axis);
+    const lx = x + dx;
+    const ly = y + dy;
 
-    // Skip if the label pixel position overlaps an occupied cell
-    if (overlapsCell(x + dx, y + dy, grid)) continue;
+    // Skip if overlapping an occupied cell
+    if (overlapsCell(lx, ly, grid)) continue;
+
+    // Skip if overlapping a previously placed label
+    const tooClose = labelPositions.some(p => {
+      const px = lx - p.x;
+      const py = ly - p.y;
+      return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
+    });
+    if (tooClose) continue;
+
+    labelPositions.push({ x: lx, y: ly });
+    const lineLabel = formatNeighborClue(clue.value, clue.notation, contiguityEnabled);
     svgContainer.appendChild(
-      createTextElement(x + dx, y + dy, String(clue.value), '#95a5a6', 10, rotation),
+      createTextElement(lx, ly, lineLabel, '#95a5a6', 10, rotation),
     );
   }
 }
