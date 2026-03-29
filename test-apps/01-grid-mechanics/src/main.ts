@@ -6,7 +6,11 @@ import { renderClues, type ClueRenderOptions } from './view/clue-renderer';
 import { initControls } from './view/controls';
 import { coordKey } from './model/hex-coord';
 import type { HexCoord } from './model/hex-coord';
+import { CellVisualState } from './model/hex-cell';
 import type { LineClueState } from './view/line-clue-state';
+import { ActionHistory } from './save/history';
+import { serializeSaveFile, deserializeSaveFile } from './save/save-file';
+import { LocalStorageBackend, downloadJsonFile, uploadJsonFile } from './save/storage';
 
 const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
@@ -16,6 +20,8 @@ let lineClueStates = new Map<string, LineClueState>();
 let hiddenFlowerClues = new Set<string>();
 let dimmedFlowerClues = new Set<string>();
 let flowerGuideClues = new Set<string>();
+let actionHistory = new ActionHistory();
+const storage = new LocalStorageBackend();
 
 const clueOptions: ClueRenderOptions = {
   showHitAreaOutlines: false,
@@ -34,30 +40,48 @@ function render(): void {
 }
 
 function handleCellClick(coord: HexCoord, interaction: CellInteraction): void {
+  const ck = coordKey(coord);
   switch (interaction) {
-    case 'open':
-      currentGrid.openCell(coord);
+    case 'open': {
+      const cell = currentGrid.cells.get(ck);
+      if (cell && cell.visualState === CellVisualState.COVERED) {
+        const prevMistakes = currentGrid.mistakeCount;
+        currentGrid.openCell(coord);
+        const wasMistake = currentGrid.mistakeCount > prevMistakes;
+        actionHistory.push({ type: 'open', coord: ck, wasMistake });
+      }
       break;
-    case 'mark':
-      currentGrid.markCell(coord);
+    }
+    case 'mark': {
+      const cell = currentGrid.cells.get(ck);
+      if (cell && cell.visualState === CellVisualState.COVERED) {
+        const prevMistakes = currentGrid.mistakeCount;
+        currentGrid.markCell(coord);
+        const wasMistake = currentGrid.mistakeCount > prevMistakes;
+        actionHistory.push({ type: 'mark', coord: ck, wasMistake });
+      }
       break;
+    }
     case 'toggleTruth':
+      actionHistory.push({ type: 'dev:toggleTruth', coord: ck });
       currentGrid.toggleGroundTruth(coord);
       break;
     case 'recover':
+      actionHistory.push({ type: 'dev:recover', coord: ck });
       currentGrid.recoverCell(coord);
       break;
     case 'toggleMissing':
+      actionHistory.push({ type: 'dev:toggleMissing', coord: ck });
       currentGrid.toggleMissing(coord);
       break;
     case 'toggleClueVisibility':
-      handleFlowerClueToggle(coordKey(coord));
+      handleFlowerClueToggle(ck);
       return;
     case 'toggleClueDimmed':
-      handleFlowerClueDimToggle(coordKey(coord));
+      handleFlowerClueDimToggle(ck);
       return;
     case 'toggleFlowerGuide':
-      handleFlowerGuideToggle(coordKey(coord));
+      handleFlowerGuideToggle(ck);
       return;
   }
   render();
@@ -103,6 +127,7 @@ function loadGrid(index: number): void {
   hiddenFlowerClues = new Set();
   dimmedFlowerClues = new Set();
   flowerGuideClues = new Set();
+  actionHistory = new ActionHistory();
   render();
 }
 
@@ -114,6 +139,7 @@ function loadRandomGrid(width: number, height: number, density: number): void {
   hiddenFlowerClues = new Set();
   dimmedFlowerClues = new Set();
   flowerGuideClues = new Set();
+  actionHistory = new ActionHistory();
   render();
 }
 
@@ -133,6 +159,40 @@ function bulkSetLineContiguity(enabled: boolean): void {
   render();
 }
 
+async function handleSave(): Promise<void> {
+  const json = serializeSaveFile({
+    grid: currentGrid,
+    name: currentGrid.width + 'x' + currentGrid.height,
+    description: '',
+    lineClueStates,
+    hiddenFlowerClues,
+    dimmedFlowerClues,
+    flowerGuideClues,
+    history: actionHistory,
+  });
+  await storage.save('autosave', json);
+  downloadJsonFile(json, `puzzle-${Date.now()}.json`);
+}
+
+async function handleLoad(): Promise<void> {
+  const fileData = await uploadJsonFile();
+  const json = fileData ?? await storage.load('autosave');
+  if (!json) return;
+
+  const result = deserializeSaveFile(json);
+  currentGrid = result.grid;
+  lineClueStates = result.lineClueStates;
+  hiddenFlowerClues = result.hiddenFlowerClues;
+  dimmedFlowerClues = result.dimmedFlowerClues;
+  flowerGuideClues = result.flowerGuideClues;
+  actionHistory = result.history;
+  render();
+}
+
+async function handleClear(): Promise<void> {
+  await storage.clearAll();
+}
+
 initControls(controlsEl, {
   gridNames: TEST_GRIDS.map(g => g.name),
   onGridSelect: loadGrid,
@@ -143,9 +203,12 @@ initControls(controlsEl, {
     clueOptions.selectionEnabled = v;
     if (!v) svgEl.querySelectorAll('.clue-selection').forEach(el => el.remove());
   },
-  onRestart: () => { currentGrid.restart(); render(); },
-  onCoverAll: () => { currentGrid.coverAll(); render(); },
+  onRestart: () => { currentGrid.restart(); actionHistory.clear(); render(); },
+  onCoverAll: () => { currentGrid.coverAll(); actionHistory.clear(); render(); },
   onRandomGenerate: loadRandomGrid,
+  onSave: handleSave,
+  onLoad: handleLoad,
+  onClear: handleClear,
 });
 
 loadGrid(0);

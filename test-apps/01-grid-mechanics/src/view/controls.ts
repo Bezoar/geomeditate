@@ -8,6 +8,9 @@ export interface ControlsConfig {
   onRestart: () => void;
   onCoverAll: () => void;
   onRandomGenerate: (width: number, height: number, density: number) => void;
+  onSave: () => void;
+  onLoad: () => void;
+  onClear: () => void;
 }
 
 function addCheckbox(container: HTMLElement, label: string, checked: boolean, onChange: (v: boolean) => void): void {
@@ -46,6 +49,34 @@ export function initControls(container: HTMLElement, config: ControlsConfig): vo
   coverBtn.textContent = 'Cover All';
   coverBtn.addEventListener('click', config.onCoverAll);
   container.appendChild(coverBtn);
+
+  // Save/Load separator
+  const saveSeparator = document.createElement('span');
+  saveSeparator.textContent = '|';
+  saveSeparator.style.opacity = '0.3';
+  container.appendChild(saveSeparator);
+
+  // Save button
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', config.onSave);
+  container.appendChild(saveBtn);
+
+  // Load button
+  const loadBtn = document.createElement('button');
+  loadBtn.textContent = 'Load';
+  loadBtn.addEventListener('click', config.onLoad);
+  container.appendChild(loadBtn);
+
+  // Clear button
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear Saves';
+  clearBtn.addEventListener('click', () => {
+    if (confirm('Clear all saved games from local storage? This cannot be undone.')) {
+      config.onClear();
+    }
+  });
+  container.appendChild(clearBtn);
 
   // Toggle checkboxes
   addCheckbox(container, 'Cell contiguity', true, config.onBulkNeighborContiguityToggle);
