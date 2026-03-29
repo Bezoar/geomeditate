@@ -184,6 +184,47 @@ const tiny3Cell: TestGridConfig = {
 };
 
 // ---------------------------------------------------------------------------
+// 6. Really large grid — 30x20 with scattered missing cells
+//    Stress test for rendering, clue computation, and interior line clues.
+// ---------------------------------------------------------------------------
+const reallyLargeGrid: TestGridConfig = (() => {
+  const width = 30;
+  const height = 20;
+  const filledCoords: Array<{ col: number; row: number }> = [];
+  const missingCoords: Array<{ col: number; row: number }> = [];
+
+  // Seed-based pseudo-random for reproducibility
+  let seed = 42;
+  function rand() {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  }
+
+  for (let col = 0; col < width; col++) {
+    for (let row = 0; row < height; row++) {
+      // Missing cells: scattered holes (~8% of cells)
+      if (rand() < 0.08) {
+        missingCoords.push({ col, row });
+        continue;
+      }
+      // Fill ~35% of remaining cells
+      if (rand() < 0.35) {
+        filledCoords.push({ col, row });
+      }
+    }
+  }
+
+  return {
+    name: 'Really Large Grid',
+    description: 'A 30x20 grid with ~8% missing cells and ~35% fill density for stress testing.',
+    width,
+    height,
+    filledCoords,
+    missingCoords,
+  };
+})();
+
+// ---------------------------------------------------------------------------
 // Exported collection
 // ---------------------------------------------------------------------------
 export const TEST_GRIDS: TestGridConfig[] = [
@@ -192,4 +233,5 @@ export const TEST_GRIDS: TestGridConfig[] = [
   lineClues,
   largeGrid,
   tiny3Cell,
+  reallyLargeGrid,
 ];
