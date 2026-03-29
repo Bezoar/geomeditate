@@ -159,18 +159,18 @@ function renderGuideLine(
   let x1: number, y1: number, x2: number, y2: number;
 
   if (clue.cells.length === 1) {
-    // Single cell: short line segment through center along axis direction
-    if (clue.axis === 'vertical') {
-      x1 = first.x; y1 = first.y - apothem;
-      x2 = first.x; y2 = first.y + apothem;
-    } else {
-      // Diagonal: use axis direction vector
-      const angle = clue.axis === 'ascending' ? -Math.PI / 3 : Math.PI / 3;
-      x1 = first.x - Math.cos(angle) * apothem;
-      y1 = first.y - Math.sin(angle) * apothem;
-      x2 = first.x + Math.cos(angle) * apothem;
-      y2 = first.y + Math.sin(angle) * apothem;
-    }
+    // Single cell: compute direction from stepping to the next cell along the axis
+    const nextCoord = stepInDirection(clue.cells[0], clue.axis);
+    const next = toPixel(nextCoord, RADIUS);
+    const ddx = next.x - first.x;
+    const ddy = next.y - first.y;
+    const dlen = Math.sqrt(ddx * ddx + ddy * ddy);
+    const dux = ddx / dlen;
+    const duy = ddy / dlen;
+    x1 = first.x - dux * apothem;
+    y1 = first.y - duy * apothem;
+    x2 = first.x + dux * apothem;
+    y2 = first.y + duy * apothem;
   } else {
     // Direction vector from first to last cell
     const dx = last.x - first.x;
