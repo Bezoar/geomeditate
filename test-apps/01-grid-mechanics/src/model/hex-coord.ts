@@ -124,7 +124,7 @@ export function toPixel(coord: HexCoord, radius: number): { x: number; y: number
   const halfRowOffset = rowStep / 2;
 
   const x = coord.col * colStep;
-  const y = coord.row * rowStep + (coord.col % 2 === 1 ? halfRowOffset : 0);
+  const y = coord.row * rowStep + (coord.col % 2 !== 0 ? halfRowOffset : 0);
 
   return { x, y };
 }

@@ -5,12 +5,14 @@ import { renderGrid, type CellInteraction } from './view/grid-renderer';
 import { renderClues } from './view/clue-renderer';
 import { initControls } from './view/controls';
 import type { HexCoord } from './model/hex-coord';
+import type { LineClueState } from './view/line-clue-state';
 
 const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
 
 let currentGrid: HexGrid;
 let contiguityEnabled = true;
+let lineClueStates = new Map<string, LineClueState>();
 
 function updateHud(): void {
   document.getElementById('remaining')!.textContent = String(currentGrid.remainingCount);
@@ -19,7 +21,7 @@ function updateHud(): void {
 
 function render(): void {
   renderGrid(currentGrid, svgEl, handleCellClick);
-  renderClues(currentGrid, svgEl, contiguityEnabled);
+  renderClues(currentGrid, svgEl, contiguityEnabled, lineClueStates, handleLineClueInteraction);
   updateHud();
 }
 
@@ -41,10 +43,16 @@ function handleCellClick(coord: HexCoord, interaction: CellInteraction): void {
   render();
 }
 
+function handleLineClueInteraction(key: string, newState: LineClueState): void {
+  lineClueStates.set(key, newState);
+  render();
+}
+
 function loadGrid(index: number): void {
   const config = TEST_GRIDS[index];
   currentGrid = new HexGrid(config);
   currentGrid.computeAllClues();
+  lineClueStates = new Map();
   render();
 }
 
@@ -52,6 +60,7 @@ function loadRandomGrid(width: number, height: number, density: number): void {
   const config = generateRandomGrid(width, height, density);
   currentGrid = new HexGrid(config);
   currentGrid.computeAllClues();
+  lineClueStates = new Map();
   render();
 }
 
