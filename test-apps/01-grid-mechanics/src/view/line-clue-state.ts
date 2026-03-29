@@ -63,6 +63,6 @@ export function toggleInvisible(state: LineClueState): LineClueState {
   // Save current visibility and go invisible
   return {
     visibility: 'invisible',
-    savedVisibility: state.visibility === 'invisible' ? state.savedVisibility : state.visibility,
+    savedVisibility: state.visibility,
   };
 }
