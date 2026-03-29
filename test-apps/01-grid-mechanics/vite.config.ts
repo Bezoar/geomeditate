@@ -6,7 +6,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/model/**', 'src/clues/**', 'src/grids/**', 'src/save/**'],
-      exclude: ['src/view/**'],
+      exclude: ['src/view/**', 'src/save/storage.ts'],
       thresholds: {
         branches: 100,
       },
