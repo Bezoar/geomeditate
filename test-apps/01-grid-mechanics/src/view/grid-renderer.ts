@@ -54,6 +54,28 @@ export function renderGrid(
   const vbH = maxY - minY + HEX_RADIUS * 2 + PADDING * 2;
   container.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
 
+  // Render invisible placeholders for missing positions (to allow restoring)
+  if (onClick) {
+    for (let col = 0; col < grid.width; col++) {
+      for (let row = 0; row < grid.height; row++) {
+        const key = coordKey({ col, row });
+        if (grid.cells.has(key)) continue;
+
+        const { x, y } = toPixel({ col, row }, HEX_RADIUS);
+        const placeholder = document.createElementNS(SVG_NS, 'polygon');
+        placeholder.setAttribute('points', hexPoints(x, y, HEX_RADIUS));
+        placeholder.setAttribute('fill', 'transparent');
+        placeholder.style.cursor = 'pointer';
+        placeholder.addEventListener('click', (e: MouseEvent) => {
+          if (e.altKey && e.shiftKey) {
+            onClick({ col, row }, 'toggleMissing');
+          }
+        });
+        container.appendChild(placeholder);
+      }
+    }
+  }
+
   for (const cell of grid.cells.values()) {
     const key = coordKey(cell.coord);
     const { x, y } = toPixel(cell.coord, HEX_RADIUS);
