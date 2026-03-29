@@ -273,7 +273,7 @@ function renderFlowerGuide(
     outline.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
     outline.setAttribute('fill', 'none');
     outline.setAttribute('stroke', '#ffffff');
-    outline.setAttribute('stroke-opacity', '0.4');
+    outline.setAttribute('stroke-opacity', '0.5');
     outline.setAttribute('stroke-width', String(STROKE_W));
     outline.setAttribute('stroke-linejoin', 'round');
     outline.setAttribute('pointer-events', 'none');
