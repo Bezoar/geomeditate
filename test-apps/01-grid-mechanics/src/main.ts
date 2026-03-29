@@ -4,6 +4,7 @@ import { generateRandomGrid } from './grids/random-grid';
 import { renderGrid, type CellInteraction } from './view/grid-renderer';
 import { renderClues, type ClueRenderOptions } from './view/clue-renderer';
 import { initControls } from './view/controls';
+import { coordKey } from './model/hex-coord';
 import type { HexCoord } from './model/hex-coord';
 import type { LineClueState } from './view/line-clue-state';
 
@@ -28,7 +29,7 @@ function updateHud(): void {
 
 function render(): void {
   renderGrid(currentGrid, svgEl, handleCellClick, clueOptions.selectionEnabled);
-  renderClues(currentGrid, svgEl, clueOptions, lineClueStates, hiddenFlowerClues, handleLineClueInteraction, handleFlowerClueToggle);
+  renderClues(currentGrid, svgEl, clueOptions, lineClueStates, hiddenFlowerClues, handleLineClueInteraction);
   updateHud();
 }
 
@@ -49,6 +50,9 @@ function handleCellClick(coord: HexCoord, interaction: CellInteraction): void {
     case 'toggleMissing':
       currentGrid.toggleMissing(coord);
       break;
+    case 'toggleClueVisibility':
+      handleFlowerClueToggle(coordKey(coord));
+      return; // render is called inside handleFlowerClueToggle
   }
   render();
 }

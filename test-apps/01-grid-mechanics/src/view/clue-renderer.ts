@@ -193,10 +193,6 @@ export interface ClueRenderOptions {
   selectionEnabled: boolean;
 }
 
-export interface FlowerClueInteraction {
-  (coordKey: string): void;
-}
-
 export function renderClues(
   grid: HexGrid,
   svgContainer: SVGElement,
@@ -204,7 +200,6 @@ export function renderClues(
   lineClueStates: Map<string, LineClueState>,
   hiddenFlowerClues: Set<string>,
   onLineClueInteraction?: LineClueInteraction,
-  onFlowerClueToggle?: FlowerClueInteraction,
 ): void {
   const { contiguityEnabled, lineContiguityEnabled, showHitAreaOutlines, selectionEnabled } = options;
   // Render cell clues (neighbor and flower)
@@ -230,36 +225,10 @@ export function renderClues(
       cell.visualState === CellVisualState.MARKED_FILLED &&
       cell.flowerClueValue !== null
     ) {
-      const ck = coordKey(cell.coord);
-      const isHidden = hiddenFlowerClues.has(ck);
-      if (!isHidden) {
-        const flowerText = createTextElement(x, y, String(cell.flowerClueValue), '#ffffff', 10);
-        if (onFlowerClueToggle) {
-          flowerText.setAttribute('pointer-events', 'auto');
-          flowerText.style.cursor = 'pointer';
-          flowerText.addEventListener('click', (e: MouseEvent) => {
-            if (e.metaKey) {
-              e.stopPropagation();
-              onFlowerClueToggle(ck);
-            }
-          });
-        }
-        svgContainer.appendChild(flowerText);
-      } else if (onFlowerClueToggle) {
-        // Hidden: full-cell hit area to restore on Cmd+click
-        const restore = document.createElementNS(SVG_NS, 'circle');
-        restore.setAttribute('cx', String(x));
-        restore.setAttribute('cy', String(y));
-        restore.setAttribute('r', String(RADIUS * 0.8));
-        restore.setAttribute('fill', 'transparent');
-        restore.style.cursor = 'pointer';
-        restore.addEventListener('click', (e: MouseEvent) => {
-          if (e.metaKey) {
-            e.stopPropagation();
-            onFlowerClueToggle(ck);
-          }
-        });
-        svgContainer.appendChild(restore);
+      if (!hiddenFlowerClues.has(coordKey(cell.coord))) {
+        svgContainer.appendChild(
+          createTextElement(x, y, String(cell.flowerClueValue), '#ffffff', 10),
+        );
       }
     }
   }
