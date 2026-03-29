@@ -30,6 +30,10 @@
 - Q: How should line clue invisible state be toggled? → A: Cmd+click on the hit area (changed from Option-click to avoid conflict with ground truth toggle).
 - Q: Should cell and line contiguity be independently toggleable? → A: Yes. Separate "Cell contiguity" and "Line contiguity" checkboxes.
 - Q: Should interior missing cells along a diagonal show line clues? → A: Yes, but only if the next cell in the downward direction is active. Interior clues show partial counts from that point forward. All labels face downward.
+- Q: Should flower clues be dimmable like line clues? → A: Yes. Right-click on a marked filled cell toggles its flower clue between full visibility and dimmed (15% opacity).
+- Q: What dimmed opacity should be used for clues? → A: 15% for both line clues and flower clues.
+- Q: Should flower clues have a guide overlay like line clue guide lines? → A: Yes. Left-click on a marked filled cell toggles a flower guide that highlights the radius-2 area (center + 18 surrounding cells). Fill at 20% white, outline at 50% white with 4px stroke. Multiple guides can be active simultaneously.
+- Q: How should the flower guide outline be rendered? → A: As a single continuous SVG polygon traced from the hex boundary edges, with the fill polygon properly inset by half the stroke width to avoid compositing artifacts between semi-transparent fill and stroke.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -68,7 +72,9 @@ As a developer, I want to interact with cells beyond normal game rules — openi
 6. **Given** an open or marked cell, **When** the user Option+right-clicks it, **Then** the cell returns to the covered state.
 7. **Given** any cell, **When** the user Option+Shift+clicks it, **Then** the cell is removed from the grid (made missing) or restored as an empty revealed cell if already missing. All surrounding clues recompute.
 8. **Given** a filled cell with a visible flower clue, **When** the user Cmd+clicks it, **Then** the flower clue is hidden. Cmd+clicking again restores it.
-9. **Given** a cell whose ground truth was toggled, **When** examining neighboring cells' clues, **Then** all neighbor clues, flower clues, and line clues reflect the updated ground truth.
+9. **Given** a marked filled cell with a visible flower clue, **When** the user right-clicks it, **Then** the flower clue dims to 15% opacity. Right-clicking again restores full visibility.
+10. **Given** a marked filled cell, **When** the user left-clicks it, **Then** a flower guide overlay appears showing the radius-2 area (20% white fill, 50% white outline). Left-clicking again dismisses it.
+11. **Given** a cell whose ground truth was toggled, **When** examining neighboring cells' clues, **Then** all neighbor clues, flower clues, and line clues reflect the updated ground truth.
 
 ---
 
@@ -148,7 +154,7 @@ As a developer, I want to control the visibility of individual line clues — sh
 
 1. **Given** a visible line clue, **When** the user clicks its hit area, **Then** a 30% white guide line appears through the diagonal cells from edge to edge.
 2. **Given** a visible-with-line clue, **When** the user clicks its hit area, **Then** the guide line disappears and the clue returns to visible.
-3. **Given** a visible or visible-with-line clue, **When** the user right-clicks its hit area, **Then** the clue dims to 30% opacity and any guide line is removed.
+3. **Given** a visible or visible-with-line clue, **When** the user right-clicks its hit area, **Then** the clue dims to 15% opacity and any guide line is removed.
 4. **Given** a dimmed clue, **When** the user right-clicks its hit area, **Then** the clue returns to full visibility (without guide line).
 5. **Given** any non-invisible clue, **When** the user Option-clicks its hit area, **Then** the clue becomes invisible and its previous state is saved.
 6. **Given** an invisible clue, **When** the user Option-clicks its hit area, **Then** the clue is restored to its previously saved visibility state.
@@ -196,7 +202,10 @@ As a developer, I want to control the visibility of individual line clues — sh
 - **FR-028**: Line clue hit areas MUST be triangle-shaped wedges within the missing hex cell where the label sits, pointing toward the grid. Hit areas MUST NOT overlap grid cells.
 - **FR-029**: Guide lines MUST be 30% opaque white, 2px wide, extending from edge-to-edge of the first and last cells along the axis direction.
 - **FR-030**: Text selection MUST be disabled on the grid container to prevent accidental selection during gameplay.
-- **FR-031**: Flower clues MUST support visible/invisible toggle via Cmd+click on the cell. No extra hit areas — the cell hex polygon handles the click.
+- **FR-031**: Flower clues MUST support three display states: visible (default), dimmed (15% opacity via right-click on filled cell), and hidden (via Cmd+click on filled cell). No extra hit areas — the cell hex polygon handles all clicks.
+- **FR-035**: Left-click on a marked filled cell MUST toggle a flower guide overlay showing the radius-2 area (center cell + 18 surrounding positions). The guide MUST render a filled polygon at 20% white opacity and an outline at 50% white opacity with 4px stroke width. Multiple guides MAY be active simultaneously. Left-click again MUST dismiss the guide.
+- **FR-036**: The flower guide fill polygon MUST be inset from the outline by half the stroke width to prevent compositing artifacts between semi-transparent fill and stroke.
+- **FR-037**: The dimmed opacity constant (15%) MUST apply to both line clues and flower clues.
 - **FR-032**: Interior line clue labels MUST appear at missing cells along a diagonal where the adjacent active cell is in the "downward" direction. Interior labels show partial counts from that point to the end of the diagonal. All labels face downward (describing cells going down/down-right/down-left).
 - **FR-033**: System MUST provide debug toggle checkboxes: Cell contiguity, Line contiguity (independent), Hit areas (show/hide triangle outlines), and Select (click highlights cells/hit areas in yellow for inspection).
 - **FR-034**: When the Select toggle is unchecked, any active yellow selection highlight MUST be removed.

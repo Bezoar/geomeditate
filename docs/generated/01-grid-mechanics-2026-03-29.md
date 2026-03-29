@@ -57,7 +57,7 @@ Four visibility states for line clues, controlled by clicking triangle hit areas
 |-------|-----------|-------------|
 | `visible` | Full brightness label | Default state |
 | `visible-with-line` | Label + 30% white guide line edge-to-edge | Left-click toggles from visible |
-| `dimmed` | 30% opacity label, no guide line | Right-click toggles from visible/visible-with-line |
+| `dimmed` | 15% opacity label, no guide line | Right-click toggles from visible/visible-with-line |
 | `invisible` | Hidden, previous state saved | Option-click toggles; restores saved state |
 
 **Guide lines**: 30% opaque white, 2px wide, extending from the edge of the first cell to the edge of the last cell along the axis direction. For single-cell lines, direction is computed from `stepInDirection` to ensure edge-to-edge alignment (not vertex-to-vertex).
@@ -80,7 +80,9 @@ All interactions use left-click or right-click with modifier keys:
 | Action | Input | Behavior |
 |--------|-------|----------|
 | Mark as filled | Click | Marks cell blue. If ground truth is EMPTY → mistake (cell stays COVERED). |
+| Toggle flower guide | Click (on filled cell) | Shows/hides the radius-2 area overlay on marked filled cells. |
 | Open (reveal) | Right-click | Reveals cell. If ground truth is FILLED → mistake (cell stays COVERED). |
+| Toggle flower clue dimmed | Right-click (on filled cell) | Toggles flower clue between full visibility and 15% opacity. |
 | Toggle ground truth | Option+click | Switches FILLED↔EMPTY. Visual state updates to match (unless COVERED). All clues recompute. |
 | Re-cover | Option+right-click | Returns cell to COVERED state. |
 | Toggle missing | Option+Shift+click | Removes cell from grid (missing) or restores it as EMPTY. |
@@ -134,12 +136,30 @@ Single row of controls: grid selector dropdown, Restart button, Cover All button
 - **Hit areas**: shows/hides triangle outlines on line clue hit areas
 - **Select**: clicking cells/hit areas highlights them in yellow for inspection instead of performing actions
 
-### Flower Clue Visibility
+### Flower Clue Display States
 
-- Cmd+click on a filled cell toggles its flower clue between visible and hidden.
-- No extra SVG elements needed — the cell hex polygon handles the click.
-- Hidden flower clue state stored as a `Set<string>` of coordKeys in main.ts.
-- State resets when switching grids.
+Three visibility states for flower clues on marked filled cells:
+
+| State | Appearance | Trigger |
+|-------|-----------|---------|
+| `visible` | Full brightness label | Default state |
+| `dimmed` | 15% opacity label | Right-click toggles visible ↔ dimmed |
+| `hidden` | No label rendered | Cmd+click toggles visible ↔ hidden |
+
+- No extra hit areas needed — the cell hex polygon handles all clicks.
+- Hidden state stored as `Set<string>` of coordKeys, dimmed state as a separate `Set<string>`, both in main.ts.
+- Both states reset when switching grids.
+
+### Flower Guide Overlay
+
+- Left-click on a marked filled cell toggles a **flower guide** that highlights the radius-2 area around that cell.
+- The guide renders the full theoretical area (center + 18 surrounding positions at distance 1 and 2) regardless of whether those cells exist in the grid.
+- **Fill**: white polygon at 20% opacity covering the entire area.
+- **Outline**: white stroke at 50% opacity, 4px wide, with `stroke-linejoin: round`.
+- The boundary is traced as a single continuous SVG `<polygon>` by chaining boundary edges from the hex tiling. The adjacency map connects each boundary vertex to its successor, producing one closed loop.
+- The fill polygon is properly **inset** from the outline by half the stroke width (2px) using per-edge normal offsetting and edge-edge intersection, preventing compositing artifacts between the semi-transparent fill and stroke.
+- Multiple flower guides can be active simultaneously. Left-click again to dismiss.
+- State stored as `Set<string>` of coordKeys in main.ts; resets when switching grids.
 
 ### Test Grids
 
