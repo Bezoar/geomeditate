@@ -6,6 +6,8 @@ export interface LineClue {
   axis: LineAxis;
   startCoord: HexCoord;
   cells: HexCoord[];
+  /** Missing positions along the diagonal that can hold additional clue labels. */
+  labelPositions: HexCoord[];
   value: number;
   notation: ClueNotation;
 }
@@ -33,7 +35,7 @@ function computeBounds(cellMap: Map<string, HexCell>): GridBounds {
  * Compute the predecessor coordinate for a given cell along a given axis.
  * The predecessor is at col-1 (for diagonals) which has OPPOSITE parity.
  */
-function predecessor(coord: HexCoord, axis: LineAxis): HexCoord {
+export function predecessor(coord: HexCoord, axis: LineAxis): HexCoord {
   if (axis === 'vertical') {
     return { col: coord.col, row: coord.row - 1 };
   }
@@ -83,10 +85,13 @@ export function computeLineClue(
 ): LineClue {
   const bounds = computeBounds(cellMap);
   const cells: HexCoord[] = [];
+  const labelPositions: HexCoord[] = [];
   let current = start;
   while (isWithinBounds(current, bounds)) {
     if (cellMap.has(coordKey(current))) {
       cells.push(current);
+    } else {
+      labelPositions.push(current);
     }
     current = stepInDirection(current, axis);
   }
@@ -96,7 +101,7 @@ export function computeLineClue(
   });
   const value = filledFlags.filter(Boolean).length;
   const notation = computeLineContiguity(filledFlags, value);
-  return { axis, startCoord: cells[0], cells, value, notation };
+  return { axis, startCoord: cells[0], cells, labelPositions, value, notation };
 }
 
 /**

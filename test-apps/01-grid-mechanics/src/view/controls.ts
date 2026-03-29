@@ -2,9 +2,23 @@ export interface ControlsConfig {
   gridNames: string[];
   onGridSelect: (index: number) => void;
   onContiguityToggle: (enabled: boolean) => void;
+  onHitAreaOutlinesToggle: (enabled: boolean) => void;
+  onLineContiguityToggle: (enabled: boolean) => void;
+  onSelectionToggle: (enabled: boolean) => void;
   onRestart: () => void;
   onCoverAll: () => void;
   onRandomGenerate: (width: number, height: number, density: number) => void;
+}
+
+function addCheckbox(container: HTMLElement, label: string, checked: boolean, onChange: (v: boolean) => void): void {
+  const el = document.createElement('label');
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.checked = checked;
+  cb.addEventListener('change', () => onChange(cb.checked));
+  el.appendChild(cb);
+  el.appendChild(document.createTextNode(` ${label}`));
+  container.appendChild(el);
 }
 
 export function initControls(container: HTMLElement, config: ControlsConfig): void {
@@ -33,17 +47,11 @@ export function initControls(container: HTMLElement, config: ControlsConfig): vo
   coverBtn.addEventListener('click', config.onCoverAll);
   container.appendChild(coverBtn);
 
-  // Contiguity toggle
-  const contiguityLabel = document.createElement('label');
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.checked = true;
-  checkbox.addEventListener('change', () => {
-    config.onContiguityToggle(checkbox.checked);
-  });
-  contiguityLabel.appendChild(checkbox);
-  contiguityLabel.appendChild(document.createTextNode(' Contiguity'));
-  container.appendChild(contiguityLabel);
+  // Toggle checkboxes
+  addCheckbox(container, 'Cell contiguity', true, config.onContiguityToggle);
+  addCheckbox(container, 'Line contiguity', true, config.onLineContiguityToggle);
+  addCheckbox(container, 'Hit areas', false, config.onHitAreaOutlinesToggle);
+  addCheckbox(container, 'Select', false, config.onSelectionToggle);
 
   // Separator
   const separator = document.createElement('span');
