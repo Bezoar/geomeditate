@@ -10,6 +10,7 @@ export interface LineClue {
   labelPositions: HexCoord[];
   value: number;
   notation: ClueNotation;
+  contiguityEnabled: boolean;
 }
 
 interface GridBounds {
@@ -101,7 +102,7 @@ export function computeLineClue(
   });
   const value = filledFlags.filter(Boolean).length;
   const notation = computeLineContiguity(filledFlags, value);
-  return { axis, startCoord: cells[0], cells, labelPositions, value, notation };
+  return { axis, startCoord: cells[0], cells, labelPositions, value, notation, contiguityEnabled: true };
 }
 
 /**
