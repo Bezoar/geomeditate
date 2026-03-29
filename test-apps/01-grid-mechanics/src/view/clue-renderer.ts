@@ -193,7 +193,7 @@ function renderGuideLine(
   line.setAttribute('x2', String(x2));
   line.setAttribute('y2', String(y2));
   line.setAttribute('stroke', '#ffffff');
-  line.setAttribute('stroke-opacity', '0.2');
+  line.setAttribute('stroke-opacity', '0.3');
   line.setAttribute('stroke-width', '2');
   line.setAttribute('stroke-linecap', 'round');
   svgContainer.appendChild(line);
