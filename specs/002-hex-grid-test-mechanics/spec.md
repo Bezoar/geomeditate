@@ -163,7 +163,7 @@ As a developer, I want to control the visibility of individual line clues — sh
 - **FR-002**: System MUST support four cell visual states: covered (orange), marked filled (blue), open empty (dark), and missing hex (invisible placeholder polygon).
 - **FR-003**: System MUST display neighbor clues inside open empty cells, supporting plain number, `{n}` contiguous, `-n-` discontiguous, and `?` (no clue) notations. All clue text MUST have `pointer-events: none`.
 - **FR-004**: System MUST display flower clues on marked filled cells showing the count of filled cells within a 2-hex radius.
-- **FR-005**: System MUST display line clues along the three hex axes (vertical, upper-left-to-lower-right, upper-right-to-lower-left). Line clues MUST span gaps (missing cells within grid bounds are skipped, one clue per diagonal lane). Line clues MUST include contiguity notation.
+- **FR-005**: System MUST display line clues along the three hex axes (vertical, upper-left-to-lower-right, upper-right-to-lower-left). Each line clue counts filled cells along the entire diagonal lane, spanning any gaps from missing cells. Multiple clues MAY appear along the same diagonal wherever missing cells provide space to hold the clue label. Line clues MUST include contiguity notation.
 - **FR-006**: System MUST include at least 3 predefined test grids covering: (a) basic neighbor clues, (b) flower clues, and (c) line clues.
 - **FR-007**: System MUST provide a grid selector allowing the user to switch between available test grids.
 - **FR-008**: System MUST provide a restart action that resets the current grid to its initial state, preserving clue values.

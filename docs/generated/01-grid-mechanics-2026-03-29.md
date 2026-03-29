@@ -35,7 +35,7 @@
 
 #### Line Clues (column/diagonal)
 - Three axes: vertical, ascending (/), descending (\).
-- **Lines span gaps**: missing cells within grid bounds are skipped, not treated as line breaks. One clue per diagonal lane.
+- **Lines span gaps**: missing cells within grid bounds are skipped, not treated as line breaks. Each clue counts filled cells along the entire diagonal lane. Multiple clues may appear along the same diagonal wherever missing cells provide space for the label.
 - **Predecessor parity bug found and fixed**: the `predecessor()` function must use the parity of `col-1` (the predecessor column), not the current column. Since `col-1` has opposite parity, the even/odd cases must be swapped.
 - Line clues include contiguity notation: `{n}` if all filled cells form one unbroken run, `-n-` if filled cells are separated by empty cells.
 - Contiguity toggle applies to line clues as well as neighbor clues.
