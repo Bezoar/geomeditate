@@ -151,6 +151,26 @@ export class HexGrid {
     this.recomputeCluesAround(coord);
   }
 
+  toggleMissing(coord: HexCoord): void {
+    const key = coordKey(coord);
+    const cell = this.cells.get(key);
+
+    if (cell) {
+      // Cell exists — remove it (make missing)
+      if (cell.groundTruth === CellGroundTruth.FILLED &&
+          cell.visualState !== CellVisualState.MARKED_FILLED) {
+        this.remainingCount--;
+      }
+      this.cells.delete(key);
+      this.recomputeCluesAround(coord);
+    } else {
+      // Cell is missing — add it back as EMPTY, revealed
+      const newCell = revealCell(createCell(coord, CellGroundTruth.EMPTY));
+      this.cells.set(key, newCell);
+      this.recomputeCluesAround(coord);
+    }
+  }
+
   private recomputeCluesAround(coord: HexCoord): void {
     // Recompute the changed cell's own clues
     this.recomputeCellClue(coord);

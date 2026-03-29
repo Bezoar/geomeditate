@@ -20,7 +20,7 @@ function hexPoints(cx: number, cy: number, r: number): string {
   }).join(' ');
 }
 
-export type CellInteraction = 'open' | 'mark' | 'toggleTruth' | 'recover';
+export type CellInteraction = 'open' | 'mark' | 'toggleTruth' | 'recover' | 'toggleMissing';
 
 export interface CellClickHandler {
   (coord: HexCoord, interaction: CellInteraction): void;
@@ -74,7 +74,9 @@ export function renderGrid(
     if (onClick) {
       group.addEventListener('click', (e: MouseEvent) => {
         const coord = parseCoordKey(key);
-        if (e.altKey) {
+        if (e.altKey && e.shiftKey) {
+          onClick(coord, 'toggleMissing');
+        } else if (e.altKey) {
           onClick(coord, 'toggleTruth');
         } else {
           onClick(coord, 'open');

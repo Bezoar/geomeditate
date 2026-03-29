@@ -39,6 +39,9 @@ function handleCellClick(coord: HexCoord, interaction: CellInteraction): void {
     case 'recover':
       currentGrid.recoverCell(coord);
       break;
+    case 'toggleMissing':
+      currentGrid.toggleMissing(coord);
+      break;
   }
   render();
 }
