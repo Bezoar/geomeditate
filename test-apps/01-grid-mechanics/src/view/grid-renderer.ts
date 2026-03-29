@@ -116,7 +116,7 @@ export function renderGrid(
         } else if (e.altKey) {
           onClick(coord, 'toggleTruth');
         } else {
-          onClick(coord, 'open');
+          onClick(coord, 'mark');
         }
       });
 
@@ -126,7 +126,7 @@ export function renderGrid(
         if (e.altKey) {
           onClick(coord, 'recover');
         } else {
-          onClick(coord, 'mark');
+          onClick(coord, 'open');
         }
       });
     }
