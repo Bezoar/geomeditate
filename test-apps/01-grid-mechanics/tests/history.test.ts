@@ -48,7 +48,9 @@ describe('ActionHistory', () => {
     expect(h.cursor).toBe(2);
     expect(h.canRedo()).toBe(false);
     h.undo();
-    expect(h.undo()!.coord).toBe('1,1');
+    const action = h.undo()!;
+    expect(action.type).toBe('open');
+    expect('coord' in action && action.coord).toBe('1,1');
   });
 
   it('undo on empty returns null', () => {
