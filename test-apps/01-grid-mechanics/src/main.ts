@@ -18,8 +18,6 @@ let dimmedFlowerClues = new Set<string>();
 let flowerGuideClues = new Set<string>();
 
 const clueOptions: ClueRenderOptions = {
-  contiguityEnabled: true,
-  lineContiguityEnabled: true,
   showHitAreaOutlines: false,
   selectionEnabled: false,
 };
@@ -119,11 +117,27 @@ function loadRandomGrid(width: number, height: number, density: number): void {
   render();
 }
 
+function bulkSetNeighborContiguity(enabled: boolean): void {
+  for (const [key, cell] of currentGrid.cells) {
+    if (cell.neighborClueNotation !== null) {
+      currentGrid.cells.set(key, { ...cell, contiguityEnabled: enabled });
+    }
+  }
+  render();
+}
+
+function bulkSetLineContiguity(enabled: boolean): void {
+  for (let i = 0; i < currentGrid.lineClues.length; i++) {
+    currentGrid.lineClues[i] = { ...currentGrid.lineClues[i], contiguityEnabled: enabled };
+  }
+  render();
+}
+
 initControls(controlsEl, {
   gridNames: TEST_GRIDS.map(g => g.name),
   onGridSelect: loadGrid,
-  onContiguityToggle: (v) => { clueOptions.contiguityEnabled = v; render(); },
-  onLineContiguityToggle: (v) => { clueOptions.lineContiguityEnabled = v; render(); },
+  onBulkNeighborContiguityToggle: bulkSetNeighborContiguity,
+  onBulkLineContiguityToggle: bulkSetLineContiguity,
   onHitAreaOutlinesToggle: (v) => { clueOptions.showHitAreaOutlines = v; render(); },
   onSelectionToggle: (v) => {
     clueOptions.selectionEnabled = v;

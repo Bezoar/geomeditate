@@ -1,9 +1,9 @@
 export interface ControlsConfig {
   gridNames: string[];
   onGridSelect: (index: number) => void;
-  onContiguityToggle: (enabled: boolean) => void;
+  onBulkNeighborContiguityToggle: (enabled: boolean) => void;
+  onBulkLineContiguityToggle: (enabled: boolean) => void;
   onHitAreaOutlinesToggle: (enabled: boolean) => void;
-  onLineContiguityToggle: (enabled: boolean) => void;
   onSelectionToggle: (enabled: boolean) => void;
   onRestart: () => void;
   onCoverAll: () => void;
@@ -48,8 +48,8 @@ export function initControls(container: HTMLElement, config: ControlsConfig): vo
   container.appendChild(coverBtn);
 
   // Toggle checkboxes
-  addCheckbox(container, 'Cell contiguity', true, config.onContiguityToggle);
-  addCheckbox(container, 'Line contiguity', true, config.onLineContiguityToggle);
+  addCheckbox(container, 'Cell contiguity', true, config.onBulkNeighborContiguityToggle);
+  addCheckbox(container, 'Line contiguity', true, config.onBulkLineContiguityToggle);
   addCheckbox(container, 'Hit areas', false, config.onHitAreaOutlinesToggle);
   addCheckbox(container, 'Select', false, config.onSelectionToggle);
 
