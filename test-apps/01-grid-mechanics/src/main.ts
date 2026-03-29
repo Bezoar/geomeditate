@@ -2,7 +2,7 @@ import { HexGrid } from './model/hex-grid';
 import { TEST_GRIDS } from './grids/test-grids';
 import { generateRandomGrid } from './grids/random-grid';
 import { renderGrid, type CellInteraction } from './view/grid-renderer';
-import { renderClues } from './view/clue-renderer';
+import { renderClues, type ClueRenderOptions } from './view/clue-renderer';
 import { initControls } from './view/controls';
 import type { HexCoord } from './model/hex-coord';
 import type { LineClueState } from './view/line-clue-state';
@@ -11,8 +11,14 @@ const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
 
 let currentGrid: HexGrid;
-let contiguityEnabled = true;
 let lineClueStates = new Map<string, LineClueState>();
+
+const clueOptions: ClueRenderOptions = {
+  contiguityEnabled: true,
+  lineContiguityEnabled: true,
+  showHitAreaOutlines: false,
+  selectionEnabled: false,
+};
 
 function updateHud(): void {
   document.getElementById('remaining')!.textContent = String(currentGrid.remainingCount);
@@ -20,8 +26,8 @@ function updateHud(): void {
 }
 
 function render(): void {
-  renderGrid(currentGrid, svgEl, handleCellClick);
-  renderClues(currentGrid, svgEl, contiguityEnabled, lineClueStates, handleLineClueInteraction);
+  renderGrid(currentGrid, svgEl, handleCellClick, clueOptions.selectionEnabled);
+  renderClues(currentGrid, svgEl, clueOptions, lineClueStates, handleLineClueInteraction);
   updateHud();
 }
 
@@ -70,7 +76,13 @@ function loadRandomGrid(width: number, height: number, density: number): void {
 initControls(controlsEl, {
   gridNames: TEST_GRIDS.map(g => g.name),
   onGridSelect: loadGrid,
-  onContiguityToggle: (enabled) => { contiguityEnabled = enabled; render(); },
+  onContiguityToggle: (v) => { clueOptions.contiguityEnabled = v; render(); },
+  onLineContiguityToggle: (v) => { clueOptions.lineContiguityEnabled = v; render(); },
+  onHitAreaOutlinesToggle: (v) => { clueOptions.showHitAreaOutlines = v; render(); },
+  onSelectionToggle: (v) => {
+    clueOptions.selectionEnabled = v;
+    if (!v) svgEl.querySelectorAll('.clue-selection').forEach(el => el.remove());
+  },
   onRestart: () => { currentGrid.restart(); render(); },
   onCoverAll: () => { currentGrid.coverAll(); render(); },
   onRandomGenerate: loadRandomGrid,

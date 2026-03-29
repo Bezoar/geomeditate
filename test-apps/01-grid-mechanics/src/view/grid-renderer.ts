@@ -30,6 +30,7 @@ export function renderGrid(
   grid: HexGrid,
   container: SVGElement,
   onClick?: CellClickHandler,
+  selectionEnabled?: boolean,
 ): void {
   while (container.firstChild) {
     container.removeChild(container.firstChild);
@@ -95,6 +96,18 @@ export function renderGrid(
 
     if (onClick) {
       group.addEventListener('click', (e: MouseEvent) => {
+        if (selectionEnabled) {
+          container.querySelectorAll('.clue-selection').forEach(el => el.remove());
+          const sel = document.createElementNS(SVG_NS, 'polygon');
+          sel.setAttribute('points', hexPoints(x, y, HEX_RADIUS));
+          sel.setAttribute('fill', 'none');
+          sel.setAttribute('stroke', '#ffff00');
+          sel.setAttribute('stroke-width', '3');
+          sel.setAttribute('pointer-events', 'none');
+          sel.classList.add('clue-selection');
+          container.appendChild(sel);
+          return;
+        }
         const coord = parseCoordKey(key);
         if (e.altKey && e.shiftKey) {
           onClick(coord, 'toggleMissing');

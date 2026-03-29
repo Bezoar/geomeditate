@@ -1,8 +1,8 @@
 import type { HexGrid } from '../model/hex-grid';
 import { predecessor } from '../clues/line';
 import type { LineClue } from '../clues/line';
-import { CellVisualState } from '../model/hex-cell';
-import { toPixel, stepInDirection } from '../model/hex-coord';
+import { CellGroundTruth, CellVisualState, ClueNotation } from '../model/hex-cell';
+import { coordKey, toPixel, stepInDirection } from '../model/hex-coord';
 import type { HexCoord, LineAxis } from '../model/hex-coord';
 import { formatNeighborClue } from '../clues/neighbor';
 import {
@@ -13,6 +13,17 @@ import {
   toggleDimmed,
   toggleInvisible,
 } from './line-clue-state';
+
+function computePartialContiguity(filledFlags: boolean[], count: number): ClueNotation {
+  if (count <= 1) return ClueNotation.PLAIN;
+  let runs = 0;
+  let inRun = false;
+  for (const filled of filledFlags) {
+    if (filled && !inRun) { runs++; inRun = true; }
+    else if (!filled) { inRun = false; }
+  }
+  return runs === 1 ? ClueNotation.CONTIGUOUS : ClueNotation.DISCONTIGUOUS;
+}
 
 const RADIUS = 24;
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -175,13 +186,21 @@ export interface LineClueInteraction {
   (clueKey: string, newState: LineClueState): void;
 }
 
+export interface ClueRenderOptions {
+  contiguityEnabled: boolean;
+  lineContiguityEnabled: boolean;
+  showHitAreaOutlines: boolean;
+  selectionEnabled: boolean;
+}
+
 export function renderClues(
   grid: HexGrid,
   svgContainer: SVGElement,
-  contiguityEnabled: boolean,
+  options: ClueRenderOptions,
   lineClueStates: Map<string, LineClueState>,
   onLineClueInteraction?: LineClueInteraction,
 ): void {
+  const { contiguityEnabled, lineContiguityEnabled, showHitAreaOutlines, selectionEnabled } = options;
   // Render cell clues (neighbor and flower)
   for (const cell of grid.cells.values()) {
     const { x, y } = toPixel(cell.coord, RADIUS);
@@ -218,84 +237,163 @@ export function renderClues(
   for (const clue of grid.lineClues) {
     const state = getState(lineClueStates, clue);
     const key = lineClueKey(clue);
-    const { rotation } = lineClueOffset(clue.axis);
+    const { dx, dy, rotation } = lineClueOffset(clue.axis);
 
     // Render guide line (behind text) if visible-with-line
     if (state.visibility === 'visible-with-line') {
       renderGuideLine(clue, svgContainer);
     }
 
-    // Collect all label positions: the edge position + all missing positions along the diagonal
-    const allLabelCoords: HexCoord[] = [];
+    const lineLabel = formatNeighborClue(clue.value, clue.notation, lineContiguityEnabled);
 
-    // Edge label position (predecessor of start, or successor of last for ascending)
+    // --- Edge label (original positioning: anchor + offset) ---
+    const anchorCoord =
+      clue.axis === 'ascending'
+        ? clue.cells[clue.cells.length - 1]
+        : clue.startCoord;
+    const anchor = toPixel(anchorCoord, RADIUS);
+    const edgeLx = anchor.x + dx;
+    const edgeLy = anchor.y + dy;
+
     const edgeCoord =
       clue.axis === 'ascending'
         ? stepInDirection(clue.cells[clue.cells.length - 1], 'ascending')
         : predecessor(clue.startCoord, clue.axis);
-    allLabelCoords.push(edgeCoord);
+    const edgeHit = toPixel(edgeCoord, RADIUS);
 
-    // Interior missing positions along the diagonal
-    for (const mp of clue.labelPositions) {
-      allLabelCoords.push(mp);
+    if (!overlapsCell(edgeLx, edgeLy, grid)) {
+      const tooClose = renderedLabelPositions.some(p => {
+        const px = edgeLx - p.x;
+        const py = edgeLy - p.y;
+        return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
+      });
+      if (!tooClose) {
+        renderedLabelPositions.push({ x: edgeLx, y: edgeLy });
+        renderLineLabel(edgeLx, edgeLy, edgeHit.x, edgeHit.y, lineLabel, rotation, state, clue.axis, key, svgContainer, options, onLineClueInteraction);
+      }
     }
 
-    // Render a label + hit area at each position
-    const lineLabel = formatNeighborClue(clue.value, clue.notation, contiguityEnabled);
+    // --- Interior labels: missing cells adjacent to an active cell ---
+    // All labels face "downward": they describe cells going down/down-right/down-left.
+    // For vertical/descending: the next cell FORWARD is active; count forward to end.
+    // For ascending: the cell BELOW-LEFT (predecessor) is active; count backward to start.
+    for (const mp of clue.labelPositions) {
+      let adjacentKey: string;
+      let intLx: number, intLy: number;
+      let partialCells: HexCoord[];
 
-    for (const labelCoord of allLabelCoords) {
-      const lp = toPixel(labelCoord, RADIUS);
-      const lx = lp.x;
-      const ly = lp.y;
+      if (clue.axis === 'ascending') {
+        // Ascending interior: label above cells going down-left
+        const pred = predecessor(mp, 'ascending');
+        adjacentKey = coordKey(pred);
+        if (!grid.cells.has(adjacentKey)) continue;
 
-      // Skip if overlapping an occupied cell
-      if (overlapsCell(lx, ly, grid)) continue;
+        // Offset upper-right from predecessor (standard ascending offset, toward missing cell)
+        const predPixel = toPixel(pred, RADIUS);
+        intLx = predPixel.x + dx;
+        intLy = predPixel.y + dy;
 
-      // Skip if overlapping a previously placed label
+        // Count from start of diagonal up to and including predecessor
+        const predIdx = clue.cells.findIndex(c => coordKey(c) === adjacentKey);
+        partialCells = clue.cells.slice(0, predIdx + 1);
+      } else {
+        // Vertical/descending interior: label above cells going down/down-right
+        const nextForward = stepInDirection(mp, clue.axis);
+        adjacentKey = coordKey(nextForward);
+        if (!grid.cells.has(adjacentKey)) continue;
+
+        // Standard offset from next cell (toward missing cell)
+        const nextAnchor = toPixel(nextForward, RADIUS);
+        intLx = nextAnchor.x + dx;
+        intLy = nextAnchor.y + dy;
+
+        // Count from next cell forward to end of diagonal
+        const nextIdx = clue.cells.findIndex(c => coordKey(c) === adjacentKey);
+        partialCells = clue.cells.slice(nextIdx);
+      }
+
+      const mc = toPixel(mp, RADIUS);
+
+      if (overlapsCell(intLx, intLy, grid)) continue;
+
       const tooClose = renderedLabelPositions.some(p => {
-        const px = lx - p.x;
-        const py = ly - p.y;
+        const px = intLx - p.x;
+        const py = intLy - p.y;
         return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
       });
       if (tooClose) continue;
 
-      renderedLabelPositions.push({ x: lx, y: ly });
+      const partialFilled = partialCells.map(c => {
+        const cell = grid.cells.get(coordKey(c));
+        return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
+      });
+      const partialValue = partialFilled.filter(Boolean).length;
+      const partialNotation = computePartialContiguity(partialFilled, partialValue);
+      const partialLabel = formatNeighborClue(partialValue, partialNotation, lineContiguityEnabled);
 
-      // Render label text based on visibility
-      if (state.visibility !== 'invisible') {
-        const opacity = state.visibility === 'dimmed' ? DIMMED_OPACITY : undefined;
-        svgContainer.appendChild(
-          createTextElement(lx, ly, lineLabel, '#95a5a6', 10, rotation, opacity),
-        );
-      }
-
-      // Render hit area triangle centered on this missing cell
-      if (onLineClueInteraction) {
-        const hitArea = document.createElementNS(SVG_NS, 'polygon');
-        hitArea.setAttribute('points', clueHitTriangle(lx, ly, clue.axis));
-        hitArea.setAttribute('fill', 'transparent');
-        hitArea.setAttribute('stroke', '#ffffff');
-        hitArea.setAttribute('stroke-opacity', '0.2');
-        hitArea.setAttribute('stroke-width', '1');
-        hitArea.style.cursor = 'pointer';
-
-        hitArea.addEventListener('click', (e: MouseEvent) => {
-          e.stopPropagation();
-          if (e.altKey) {
-            onLineClueInteraction(key, toggleInvisible(state));
-          } else {
-            onLineClueInteraction(key, toggleGuideLine(state));
-          }
-        });
-
-        hitArea.addEventListener('contextmenu', (e: MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onLineClueInteraction(key, toggleDimmed(state));
-        });
-
-        svgContainer.appendChild(hitArea);
-      }
+      renderedLabelPositions.push({ x: intLx, y: intLy });
+      renderLineLabel(intLx, intLy, mc.x, mc.y, partialLabel, rotation, state, clue.axis, key, svgContainer, options, onLineClueInteraction);
     }
   }
+}
+
+function renderLineLabel(
+  textX: number, textY: number,
+  hitX: number, hitY: number,
+  label: string, rotation: number,
+  state: LineClueState, axis: LineAxis,
+  key: string, svgContainer: SVGElement,
+  opts: ClueRenderOptions,
+  onLineClueInteraction?: LineClueInteraction,
+): void {
+  if (state.visibility !== 'invisible') {
+    const opacity = state.visibility === 'dimmed' ? DIMMED_OPACITY : undefined;
+    svgContainer.appendChild(
+      createTextElement(textX, textY, label, '#95a5a6', 10, rotation, opacity),
+    );
+  }
+
+  const hitArea = document.createElementNS(SVG_NS, 'polygon');
+  hitArea.setAttribute('points', clueHitTriangle(hitX, hitY, axis));
+  hitArea.setAttribute('fill', 'transparent');
+  if (opts.showHitAreaOutlines) {
+    hitArea.setAttribute('stroke', '#ffffff');
+    hitArea.setAttribute('stroke-opacity', '0.2');
+    hitArea.setAttribute('stroke-width', '1');
+  }
+  hitArea.style.cursor = 'pointer';
+
+  hitArea.addEventListener('click', (e: MouseEvent) => {
+    e.stopPropagation();
+    if (opts.selectionEnabled) {
+      // Remove previous selection
+      svgContainer.querySelectorAll('.clue-selection').forEach(el => el.remove());
+      const sel = document.createElementNS(SVG_NS, 'polygon');
+      sel.setAttribute('points', clueHitTriangle(hitX, hitY, axis));
+      sel.setAttribute('fill', 'none');
+      sel.setAttribute('stroke', '#ffff00');
+      sel.setAttribute('stroke-width', '3');
+      sel.setAttribute('pointer-events', 'none');
+      sel.classList.add('clue-selection');
+      svgContainer.appendChild(sel);
+      return;
+    }
+    if (onLineClueInteraction) {
+      if (e.altKey) {
+        onLineClueInteraction(key, toggleInvisible(state));
+      } else {
+        onLineClueInteraction(key, toggleGuideLine(state));
+      }
+    }
+  });
+
+  hitArea.addEventListener('contextmenu', (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onLineClueInteraction) {
+      onLineClueInteraction(key, toggleDimmed(state));
+    }
+  });
+
+  svgContainer.appendChild(hitArea);
 }
