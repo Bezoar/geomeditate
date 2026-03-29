@@ -209,28 +209,9 @@ Grid strings are a compact, human-readable encoding of hex grid contents. Each r
 
 ### Hex Grid Layout
 
-The game uses a flat-top, offset-column hex layout. Even columns (0, 2, 4, ...) sit higher; odd columns (1, 3, 5, ...) are shifted down by half a cell height.
+The game uses a flat-top, offset-column hex layout. Even columns (0, 2, 4, ...) sit higher; odd columns (1, 3, 5, ...) are shifted down by half a cell height. Columns alternate vertical position, but all cells at the same `row` index map to the same grid string line.
 
-Consider a 4-wide, 3-tall grid. The hex centers are arranged like this:
-
-```
-  col0  col1  col2  col3
-        ___         ___
-   ___/     \___   /     \
-  /     \___/     \___/     \    ← row 0
-  \___/ |   |\___/     \___/
-  /   | |   | /   |\___/   |\
-  |r0 | |r0 | |r0 | |r0|   |    visual row 0: all cells at row=0
-  \___| |___| \___| |___|   |
-  /     \___/     \___/     \
-  |r1 | |r1 | |r1 | |r1|   |    visual row 1: all cells at row=1
-  \___| |___| \___| |___|   |
-  /     \___/     \___/     \
-  |r2 | |r2 | |r2 | |r2|   |    visual row 2: all cells at row=2
-  \___/ \___/ \___/ \___/
-```
-
-Columns alternate vertical position, but all cells at the same `row` index map to the same grid string line.
+![Hex grid layout showing a 5x3 grid with filled (F), empty (E), and missing (.) cells, with column/row labels and corresponding grid strings](images/hex-grid-layout.png)
 
 ### Encoding Rules
 
@@ -288,27 +269,11 @@ Encodes as:
 
 **Note on indentation**: the leading space on odd rows is purely cosmetic — it visually suggests the hex offset but has no semantic meaning. Parsers should trim whitespace before splitting.
 
-### Full Visual Mapping
+### Visual Encoding Mapping
 
-Here is the same 5×3 grid shown as hex cells, with grid string characters overlaid:
+This diagram shows how each token in a grid string maps to its corresponding hex cell, with dashed lines connecting tokens to their positions:
 
-```
-    col0    col1    col2    col3    col4
-     ___            ___            ___
-    / F \   ___    / F \   ___    / E \      ← row 0: "F E F . E"
-    \___/  / E \   \___/  / . \   \___/        col3 is missing (.)
-          \___/          \___/
-     ___            ___            ___
-    / E \   ___    / E \   ___    / . \      ← row 1: " E F E F ."
-    \___/  / F \   \___/  / F \   \___/        col4 is missing (.)
-          \___/          \___/
-     ___            ___            ___
-    / F \   ___    / F \   ___    / F \      ← row 2: "F . F E F"
-    \___/  / . \   \___/  / E \   \___/        col1 is missing (.)
-          \___/          \___/
-```
-
-Each cell's character in the grid string corresponds to its position at `(col, row)` in the hex grid.
+![Grid string encoding diagram showing how tokens in each row string map to hex cell positions via dashed connection lines](images/hex-grid-encoding.png)
 
 ## Per-Clue Contiguity Refactor
 
