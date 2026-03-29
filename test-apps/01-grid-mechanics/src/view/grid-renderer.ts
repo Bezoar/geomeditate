@@ -20,7 +20,7 @@ function hexPoints(cx: number, cy: number, r: number): string {
   }).join(' ');
 }
 
-export type CellInteraction = 'open' | 'mark' | 'toggleTruth' | 'recover' | 'toggleMissing' | 'toggleClueVisibility';
+export type CellInteraction = 'open' | 'mark' | 'toggleTruth' | 'recover' | 'toggleMissing' | 'toggleClueVisibility' | 'toggleClueDimmed';
 
 export interface CellClickHandler {
   (coord: HexCoord, interaction: CellInteraction): void;
@@ -125,6 +125,8 @@ export function renderGrid(
         const coord = parseCoordKey(key);
         if (e.altKey) {
           onClick(coord, 'recover');
+        } else if (cell.visualState === CellVisualState.MARKED_FILLED) {
+          onClick(coord, 'toggleClueDimmed');
         } else {
           onClick(coord, 'open');
         }

@@ -27,7 +27,7 @@ function computePartialContiguity(filledFlags: boolean[], count: number): ClueNo
 
 const RADIUS = 24;
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const DIMMED_OPACITY = 0.3;
+const DIMMED_OPACITY = 0.15;
 
 function createTextElement(
   x: number,
@@ -199,6 +199,7 @@ export function renderClues(
   options: ClueRenderOptions,
   lineClueStates: Map<string, LineClueState>,
   hiddenFlowerClues: Set<string>,
+  dimmedFlowerClues: Set<string>,
   onLineClueInteraction?: LineClueInteraction,
 ): void {
   const { contiguityEnabled, lineContiguityEnabled, showHitAreaOutlines, selectionEnabled } = options;
@@ -225,9 +226,11 @@ export function renderClues(
       cell.visualState === CellVisualState.MARKED_FILLED &&
       cell.flowerClueValue !== null
     ) {
-      if (!hiddenFlowerClues.has(coordKey(cell.coord))) {
+      const ck = coordKey(cell.coord);
+      if (!hiddenFlowerClues.has(ck)) {
+        const opacity = dimmedFlowerClues.has(ck) ? DIMMED_OPACITY : undefined;
         svgContainer.appendChild(
-          createTextElement(x, y, String(cell.flowerClueValue), '#ffffff', 10),
+          createTextElement(x, y, String(cell.flowerClueValue), '#ffffff', 10, undefined, opacity),
         );
       }
     }
