@@ -9,7 +9,7 @@ export interface ControlsConfig {
   onCoverAll: () => void;
   onRandomGenerate: (width: number, height: number, density: number) => void;
   onSave: () => void;
-  onLoad: () => void;
+  onLoad: (json: string) => void;
   onClear: () => void;
 }
 
@@ -62,11 +62,25 @@ export function initControls(container: HTMLElement, config: ControlsConfig): vo
   saveBtn.addEventListener('click', config.onSave);
   container.appendChild(saveBtn);
 
-  // Load button
-  const loadBtn = document.createElement('button');
-  loadBtn.textContent = 'Load';
-  loadBtn.addEventListener('click', config.onLoad);
-  container.appendChild(loadBtn);
+  // Load — label styled as button wrapping a hidden file input
+  const loadLabel = document.createElement('label');
+  loadLabel.textContent = 'Load';
+  const loadFileInput = document.createElement('input');
+  loadFileInput.type = 'file';
+  loadFileInput.accept = '.json';
+  loadFileInput.style.display = 'none';
+  loadFileInput.addEventListener('change', () => {
+    const file = loadFileInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      config.onLoad(reader.result as string);
+      loadFileInput.value = '';
+    };
+    reader.readAsText(file);
+  });
+  loadLabel.appendChild(loadFileInput);
+  container.appendChild(loadLabel);
 
   // Clear button
   const clearBtn = document.createElement('button');

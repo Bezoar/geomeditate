@@ -10,7 +10,7 @@ import { CellVisualState } from './model/hex-cell';
 import type { LineClueState } from './view/line-clue-state';
 import { ActionHistory } from './save/history';
 import { serializeSaveFile, deserializeSaveFile } from './save/save-file';
-import { LocalStorageBackend, downloadJsonFile, uploadJsonFile } from './save/storage';
+import { LocalStorageBackend, downloadJsonFile } from './save/storage';
 
 const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
@@ -159,7 +159,7 @@ function bulkSetLineContiguity(enabled: boolean): void {
   render();
 }
 
-async function handleSave(): Promise<void> {
+function handleSave(): void {
   const json = serializeSaveFile({
     grid: currentGrid,
     name: currentGrid.width + 'x' + currentGrid.height,
@@ -170,15 +170,13 @@ async function handleSave(): Promise<void> {
     flowerGuideClues,
     history: actionHistory,
   });
-  await storage.save('autosave', json);
-  downloadJsonFile(json, `puzzle-${Date.now()}.json`);
+  const now = new Date();
+  const ts = now.toISOString().slice(0, 19).replace(/:/g, '-');
+  downloadJsonFile(json, `puzzle-${ts}.json`);
+  storage.save('autosave', json);
 }
 
-async function handleLoad(): Promise<void> {
-  const fileData = await uploadJsonFile();
-  const json = fileData ?? await storage.load('autosave');
-  if (!json) return;
-
+function loadFromJson(json: string): void {
   const result = deserializeSaveFile(json);
   currentGrid = result.grid;
   lineClueStates = result.lineClueStates;
@@ -187,6 +185,10 @@ async function handleLoad(): Promise<void> {
   flowerGuideClues = result.flowerGuideClues;
   actionHistory = result.history;
   render();
+}
+
+function handleLoad(json: string): void {
+  loadFromJson(json);
 }
 
 async function handleClear(): Promise<void> {
