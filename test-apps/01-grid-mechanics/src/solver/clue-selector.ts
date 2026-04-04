@@ -75,18 +75,18 @@ export function selectClues(grid: HexGrid, difficulty: 'easy' | 'hard'): ClueSel
     }
   }
 
-  // For easy mode: add back non-required neighbor and line clues, plus ~30% of flower clues
   let visibleClues: Set<ClueId>;
   if (difficulty === 'easy') {
+    // Start with the minimum required set.
+    // Only add back non-required clues that don't reveal new cells.
+    // Each neighbor/flower clue reveals its host cell, so adding a non-required
+    // one would expose a cell that wasn't needed — skip those.
+    // Line clues don't reveal any cells, so they're always safe to add back.
     visibleClues = new Set(required);
     for (const clueId of candidates) {
       if (required.has(clueId)) continue;
-      if (clueId.startsWith('neighbor:') || clueId.startsWith('line:')) {
+      if (clueId.startsWith('line:')) {
         visibleClues.add(clueId);
-      } else if (clueId.startsWith('flower:')) {
-        if (Math.random() < 0.3) {
-          visibleClues.add(clueId);
-        }
       }
     }
   } else {
