@@ -4,30 +4,38 @@ import type { ClueSelection } from './clue-selector';
 import type { SolveReplay } from './verifier';
 import { selectClues } from './clue-selector';
 import { editForSolvability } from './grid-editor';
+import { solveProgressively } from './progressive';
+import type { SolveTier } from './solver';
 
 export interface PuzzleResult {
   grid: HexGrid;
-  clueSelection: ClueSelection;
+  clueSelection: ClueSelection | null;
   edits: GridEdit[];
   replay: SolveReplay;
 }
 
 /**
- * Top-level puzzle generator that wires selectClues and editForSolvability
- * together.
- *
- * 1. Try selectClues(grid, difficulty). If non-null, return PuzzleResult with
- *    empty edits[] and the selection's verifyResult as replay.
- * 2. If null, try editForSolvability(grid, difficulty). If non-null, return
- *    PuzzleResult with the edited grid, edits, and the clueSelection's
- *    verifyResult as replay.
- * 3. If both fail, return null.
+ * Generate a puzzle using progressive solving: start with no clues visible,
+ * reveal them one at a time as the solver gets stuck.
+ * Falls back to the old selectClues approach if progressive solving fails.
  */
 export function generatePuzzle(
   grid: HexGrid,
   difficulty: 'easy' | 'hard',
 ): PuzzleResult | null {
-  // Step 1: Try clue selection alone
+  const tier: SolveTier = difficulty === 'easy' ? 'simple' : 'advanced';
+  const replay = solveProgressively(grid, tier);
+
+  if (!replay.stuck) {
+    return {
+      grid,
+      clueSelection: null,
+      edits: [],
+      replay,
+    };
+  }
+
+  // Progressive solving got stuck — fall back to old approach
   const selection = selectClues(grid, difficulty);
   if (selection !== null) {
     return {
@@ -38,7 +46,6 @@ export function generatePuzzle(
     };
   }
 
-  // Step 2: Try editing for solvability
   const editResult = editForSolvability(grid, difficulty);
   if (editResult !== null) {
     return {
@@ -49,6 +56,5 @@ export function generatePuzzle(
     };
   }
 
-  // Step 3: Both failed
   return null;
 }

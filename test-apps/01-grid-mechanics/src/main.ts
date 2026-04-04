@@ -203,51 +203,32 @@ interface CellReveal {
   reason: string;
 }
 
-interface FlattenedReplay {
-  preReveals: CellReveal[];
-  deductions: CellReveal[];
-}
-
-/** Separate pre-reveals from actual deductions. */
-function flattenReplay(replay: import('./solver/verifier').SolveReplay): FlattenedReplay {
-  const preReveals: CellReveal[] = [];
-  const deductions: CellReveal[] = [];
+/** Flatten replay steps into individual cell reveals. */
+function flattenReplay(replay: import('./solver/verifier').SolveReplay): CellReveal[] {
+  const reveals: CellReveal[] = [];
   for (const step of replay.steps) {
     for (const d of step.deductions) {
-      const key = coordKey(d.coord);
-      const reveal: CellReveal = {
-        key,
+      reveals.push({
+        key: coordKey(d.coord),
         visualState: d.result === 'filled' ? CellVisualState.MARKED_FILLED : CellVisualState.OPEN_EMPTY,
         reason: d.reason.explanation,
-      };
-      if (d.reason.explanation === 'Pre-revealed by clue selection') {
-        preReveals.push(reveal);
-      } else {
-        deductions.push(reveal);
-      }
+      });
     }
   }
-  return { preReveals, deductions };
+  return reveals;
 }
 
-/** Apply pre-reveals + deductions up to index N to the live grid. */
-function applyReplayState(preReveals: CellReveal[], deductions: CellReveal[], n: number): void {
+/** Apply reveals up to (and including) index N to the live grid. */
+function applyRevealsUpTo(reveals: CellReveal[], n: number): void {
   // Reset all to covered first
   for (const [key, cell] of currentGrid.cells) {
     if (cell.visualState !== CellVisualState.COVERED) {
       currentGrid.cells.set(key, { ...cell, visualState: CellVisualState.COVERED });
     }
   }
-  // Always apply all pre-reveals
-  for (const r of preReveals) {
-    const cell = currentGrid.cells.get(r.key);
-    if (cell) {
-      currentGrid.cells.set(r.key, { ...cell, visualState: r.visualState });
-    }
-  }
-  // Apply deductions 0..n
+  // Apply reveals 0..n
   for (let i = 0; i <= n; i++) {
-    const r = deductions[i];
+    const r = reveals[i];
     const cell = currentGrid.cells.get(r.key);
     if (cell) {
       currentGrid.cells.set(r.key, { ...cell, visualState: r.visualState });
@@ -263,7 +244,6 @@ function applyReplayState(preReveals: CellReveal[], deductions: CellReveal[], n:
   currentGrid.remainingCount = remaining;
 }
 
-let replayPreReveals: CellReveal[] = [];
 let flatReveals: CellReveal[] = [];
 let replayIndex = -1;
 let playTimerId: ReturnType<typeof setTimeout> | null = null;
@@ -283,7 +263,7 @@ function updateReplayStatus(): void {
 function replayStepForward(): void {
   if (replayIndex < flatReveals.length - 1) {
     replayIndex++;
-    applyReplayState(replayPreReveals, flatReveals, replayIndex);
+    applyRevealsUpTo(flatReveals, replayIndex);
     updateReplayStatus();
     render();
   }
@@ -292,7 +272,11 @@ function replayStepForward(): void {
 function replayStepBack(): void {
   if (replayIndex >= 0) {
     replayIndex--;
-    applyReplayState(replayPreReveals, flatReveals, replayIndex);
+    if (replayIndex === -1) {
+      currentGrid.coverAll();
+    } else {
+      applyRevealsUpTo(flatReveals, replayIndex);
+    }
     updateReplayStatus();
     render();
   }
@@ -346,13 +330,9 @@ function handleSolve(): void {
     currentGrid.coverAll();
     actionHistory.clear();
 
-    const flattened = flattenReplay(result.replay);
-    replayPreReveals = flattened.preReveals;
-    flatReveals = flattened.deductions;
+    flatReveals = flattenReplay(result.replay);
     replayIndex = -1;
 
-    // Apply pre-reveals as the starting state
-    applyReplayState(replayPreReveals, flatReveals, -1);
     updateReplayStatus();
     render();
   }, 0);

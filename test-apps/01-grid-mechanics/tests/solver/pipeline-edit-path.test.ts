@@ -15,13 +15,18 @@ import type { TestGridConfig } from '../../src/model/hex-grid';
 
 // vi.hoisted() runs before the vi.mock() factory so the variable can be
 // referenced inside the factory without hoisting issues.
-const { mockSelectClues } = vi.hoisted(() => ({
+const { mockSelectClues, mockProgressive } = vi.hoisted(() => ({
   mockSelectClues: vi.fn(),
+  mockProgressive: vi.fn(),
 }));
 
 vi.mock('../../src/solver/clue-selector', () => ({
   selectClues: mockSelectClues,
   allClueIds: vi.fn(() => new Set<string>()),
+}));
+
+vi.mock('../../src/solver/progressive', () => ({
+  solveProgressively: mockProgressive,
 }));
 
 import { generatePuzzle } from '../../src/solver/pipeline';
@@ -56,6 +61,9 @@ function make3x3Grid(): HexGrid {
 describe('generatePuzzle – mock-controlled branch coverage', () => {
   beforeEach(() => {
     mockSelectClues.mockReset();
+    mockProgressive.mockReset();
+    // Progressive solving always returns stuck, forcing fallback to selectClues
+    mockProgressive.mockReturnValue({ steps: [], stuck: true, stuckCells: new Set(['0,0']) });
   });
 
   /**
@@ -71,7 +79,18 @@ describe('generatePuzzle – mock-controlled branch coverage', () => {
    *   call 2: grid-editor initial check → null
    *   call 3+: grid-editor strategy iterations → fakeSelection (toggle_truth wins)
    */
-  it('falls through to editForSolvability when selectClues initially returns null', () => {
+  it('falls through to selectClues when progressive solving is stuck', () => {
+    mockSelectClues.mockReturnValue(fakeSelection);
+
+    const result = generatePuzzle(make3x3Grid(), 'easy');
+
+    expect(result).not.toBeNull();
+    expect(result!.clueSelection).toBe(fakeSelection);
+    expect(result!.replay).toBe(fakeReplay);
+    expect(result!.edits).toHaveLength(0);
+  });
+
+  it('falls through to editForSolvability when both progressive and selectClues fail', () => {
     mockSelectClues
       .mockReturnValueOnce(null)          // pipeline: selectClues returns null
       .mockReturnValueOnce(null)          // grid-editor: initial solvability check

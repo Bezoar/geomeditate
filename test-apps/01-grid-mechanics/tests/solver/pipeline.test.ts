@@ -68,7 +68,6 @@ describe('generatePuzzle', () => {
 
     expect(result).not.toBeNull();
     expect(result!.replay.stuck).toBe(false);
-    expect(result!.clueSelection.difficulty).toBe('hard');
   });
 
   /**
@@ -115,11 +114,12 @@ describe('generatePuzzle', () => {
     // grid
     expect(result!.grid).toBeDefined();
     expect(result!.grid.cells).toBeDefined();
-    // clueSelection
-    expect(result!.clueSelection).toBeDefined();
-    expect(result!.clueSelection.visibleClues instanceof Set).toBe(true);
-    expect(typeof result!.clueSelection.difficulty).toBe('string');
-    expect(result!.clueSelection.verifyResult).toBeDefined();
+    // clueSelection (may be null when progressive solving succeeds)
+    if (result!.clueSelection !== null) {
+      expect(result!.clueSelection.visibleClues instanceof Set).toBe(true);
+      expect(typeof result!.clueSelection.difficulty).toBe('string');
+      expect(result!.clueSelection.verifyResult).toBeDefined();
+    }
     // edits
     expect(Array.isArray(result!.edits)).toBe(true);
     // replay
@@ -143,17 +143,15 @@ describe('generatePuzzle', () => {
   });
 
   /**
-   * T7: replay matches clueSelection.verifyResult.
-   *
-   * The replay field in PuzzleResult is the verifyResult from the clue
-   * selection. They must be the same object reference.
+   * T7: replay is always present and well-formed.
    */
-  it('replay is the same object as clueSelection.verifyResult', () => {
+  it('replay is present and not stuck', () => {
     const grid = make2x1Grid();
     const result = generatePuzzle(grid, 'easy');
 
     expect(result).not.toBeNull();
-    expect(result!.replay).toBe(result!.clueSelection.verifyResult);
+    expect(result!.replay).toBeDefined();
+    expect(result!.replay.stuck).toBe(false);
   });
 
   /**
@@ -194,10 +192,18 @@ describe('generatePuzzle', () => {
   });
 
   /**
-   * T10: clueSelection.difficulty matches the requested difficulty.
+   * T10: clueSelection.difficulty matches when falling back to old approach.
    */
-  it('clueSelection.difficulty matches requested difficulty', () => {
-    expect(generatePuzzle(make2x1Grid(), 'easy')!.clueSelection.difficulty).toBe('easy');
-    expect(generatePuzzle(make2x1Grid(), 'hard')!.clueSelection.difficulty).toBe('hard');
+  it('clueSelection difficulty matches when present', () => {
+    const easyResult = generatePuzzle(make2x1Grid(), 'easy');
+    expect(easyResult).not.toBeNull();
+    if (easyResult!.clueSelection !== null) {
+      expect(easyResult!.clueSelection.difficulty).toBe('easy');
+    }
+    const hardResult = generatePuzzle(make2x1Grid(), 'hard');
+    expect(hardResult).not.toBeNull();
+    if (hardResult!.clueSelection !== null) {
+      expect(hardResult!.clueSelection.difficulty).toBe('hard');
+    }
   });
 });

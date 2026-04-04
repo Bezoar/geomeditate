@@ -319,14 +319,7 @@ describe('selectClues', () => {
     expect(selection).not.toBeNull();
     expect(selection!.verifyResult.stuck).toBe(false);
 
-    // Check that all non-required visible clues are line clues
-    const all = allClueIds(grid);
-    for (const clueId of selection!.visibleClues) {
-      if (clueId.startsWith('line:')) continue; // line clues are fine
-      // Non-line clues must be required (i.e., removing them would break solvability)
-      // We can't easily check "required" here, but we can verify solvability
-    }
-    // The key assertion: puzzle is still solvable
+    // The key assertion: puzzle is solvable with selected clues
     expect(selection!.verifyResult.stuck).toBe(false);
   });
 });
