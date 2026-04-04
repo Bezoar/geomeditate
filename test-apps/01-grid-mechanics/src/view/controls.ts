@@ -1,13 +1,16 @@
 export interface ControlsConfig {
   gridNames: string[];
   onGridSelect: (index: number) => void;
-  onContiguityToggle: (enabled: boolean) => void;
+  onBulkNeighborContiguityToggle: (enabled: boolean) => void;
+  onBulkLineContiguityToggle: (enabled: boolean) => void;
   onHitAreaOutlinesToggle: (enabled: boolean) => void;
-  onLineContiguityToggle: (enabled: boolean) => void;
   onSelectionToggle: (enabled: boolean) => void;
   onRestart: () => void;
   onCoverAll: () => void;
   onRandomGenerate: (width: number, height: number, density: number) => void;
+  onSave: () => void;
+  onLoad: (json: string) => void;
+  onClear: () => void;
 }
 
 function addCheckbox(container: HTMLElement, label: string, checked: boolean, onChange: (v: boolean) => void): void {
@@ -47,9 +50,51 @@ export function initControls(container: HTMLElement, config: ControlsConfig): vo
   coverBtn.addEventListener('click', config.onCoverAll);
   container.appendChild(coverBtn);
 
+  // Save/Load separator
+  const saveSeparator = document.createElement('span');
+  saveSeparator.textContent = '|';
+  saveSeparator.style.opacity = '0.3';
+  container.appendChild(saveSeparator);
+
+  // Save button
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', config.onSave);
+  container.appendChild(saveBtn);
+
+  // Load — label styled as button wrapping a hidden file input
+  const loadLabel = document.createElement('label');
+  loadLabel.textContent = 'Load';
+  const loadFileInput = document.createElement('input');
+  loadFileInput.type = 'file';
+  loadFileInput.accept = '.json';
+  loadFileInput.style.display = 'none';
+  loadFileInput.addEventListener('change', () => {
+    const file = loadFileInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      config.onLoad(reader.result as string);
+      loadFileInput.value = '';
+    };
+    reader.readAsText(file);
+  });
+  loadLabel.appendChild(loadFileInput);
+  container.appendChild(loadLabel);
+
+  // Clear button
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear Saves';
+  clearBtn.addEventListener('click', () => {
+    if (confirm('Clear all saved games from local storage? This cannot be undone.')) {
+      config.onClear();
+    }
+  });
+  container.appendChild(clearBtn);
+
   // Toggle checkboxes
-  addCheckbox(container, 'Cell contiguity', true, config.onContiguityToggle);
-  addCheckbox(container, 'Line contiguity', true, config.onLineContiguityToggle);
+  addCheckbox(container, 'Cell contiguity', true, config.onBulkNeighborContiguityToggle);
+  addCheckbox(container, 'Line contiguity', true, config.onBulkLineContiguityToggle);
   addCheckbox(container, 'Hit areas', false, config.onHitAreaOutlinesToggle);
   addCheckbox(container, 'Select', false, config.onSelectionToggle);
 

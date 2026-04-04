@@ -24,6 +24,7 @@ export interface HexCell {
   visualState: CellVisualState;
   neighborClueValue: number | null;
   neighborClueNotation: ClueNotation | null;
+  contiguityEnabled: boolean;
   flowerClueValue: number | null;
 }
 
@@ -39,6 +40,7 @@ export function createCell(coord: HexCoord, groundTruth: CellGroundTruth): HexCe
     visualState: CellVisualState.COVERED,
     neighborClueValue: null,
     neighborClueNotation: null,
+    contiguityEnabled: true,
     flowerClueValue: null,
   };
 }

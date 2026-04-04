@@ -17,6 +17,11 @@ describe('createCell', () => {
     expect(cell.groundTruth).toBe(CellGroundTruth.FILLED);
     expect(cell.visualState).toBe(CellVisualState.COVERED);
   });
+
+  it('defaults contiguityEnabled to true', () => {
+    const cell = createCell({ col: 0, row: 0 }, CellGroundTruth.EMPTY);
+    expect(cell.contiguityEnabled).toBe(true);
+  });
 });
 
 describe('revealCell', () => {
@@ -55,6 +60,7 @@ describe('openCell', () => {
       visualState: CellVisualState.OPEN_EMPTY,
       neighborClueValue: null,
       neighborClueNotation: null,
+      contiguityEnabled: true,
       flowerClueValue: null,
     };
     const result = openCell(cell);
@@ -69,6 +75,7 @@ describe('openCell', () => {
       visualState: CellVisualState.MARKED_FILLED,
       neighborClueValue: null,
       neighborClueNotation: null,
+      contiguityEnabled: true,
       flowerClueValue: null,
     };
     const result = openCell(cell);
@@ -99,6 +106,7 @@ describe('markCell', () => {
       visualState: CellVisualState.OPEN_EMPTY,
       neighborClueValue: null,
       neighborClueNotation: null,
+      contiguityEnabled: true,
       flowerClueValue: null,
     };
     const result = markCell(cell);
@@ -113,6 +121,7 @@ describe('markCell', () => {
       visualState: CellVisualState.MARKED_FILLED,
       neighborClueValue: null,
       neighborClueNotation: null,
+      contiguityEnabled: true,
       flowerClueValue: null,
     };
     const result = markCell(cell);
@@ -129,6 +138,7 @@ describe('recoverCell', () => {
       visualState: CellVisualState.OPEN_EMPTY,
       neighborClueValue: null,
       neighborClueNotation: null,
+      contiguityEnabled: true,
       flowerClueValue: null,
     };
     const result = recoverCell(cell);
@@ -142,6 +152,7 @@ describe('recoverCell', () => {
       visualState: CellVisualState.MARKED_FILLED,
       neighborClueValue: null,
       neighborClueNotation: null,
+      contiguityEnabled: true,
       flowerClueValue: null,
     };
     const result = recoverCell(cell);
@@ -175,6 +186,7 @@ describe('toggleGroundTruth', () => {
       visualState: CellVisualState.MARKED_FILLED,
       neighborClueValue: null,
       neighborClueNotation: null,
+      contiguityEnabled: true,
       flowerClueValue: null,
     };
     const result = toggleGroundTruth(cell);

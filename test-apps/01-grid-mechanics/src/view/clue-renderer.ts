@@ -187,8 +187,6 @@ export interface LineClueInteraction {
 }
 
 export interface ClueRenderOptions {
-  contiguityEnabled: boolean;
-  lineContiguityEnabled: boolean;
   showHitAreaOutlines: boolean;
   selectionEnabled: boolean;
 }
@@ -291,7 +289,6 @@ export function renderClues(
   flowerGuideClues: Set<string>,
   onLineClueInteraction?: LineClueInteraction,
 ): void {
-  const { contiguityEnabled, lineContiguityEnabled, showHitAreaOutlines, selectionEnabled } = options;
 
   // Render flower guide overlays (behind clue text)
   for (const ck of flowerGuideClues) {
@@ -313,7 +310,7 @@ export function renderClues(
       const label = formatNeighborClue(
         cell.neighborClueValue,
         cell.neighborClueNotation,
-        contiguityEnabled,
+        cell.contiguityEnabled,
       );
       svgContainer.appendChild(
         createTextElement(x, y, label, '#ffffff', 10),
@@ -348,7 +345,7 @@ export function renderClues(
       renderGuideLine(clue, svgContainer);
     }
 
-    const lineLabel = formatNeighborClue(clue.value, clue.notation, lineContiguityEnabled);
+    const lineLabel = formatNeighborClue(clue.value, clue.notation, clue.contiguityEnabled);
 
     // --- Edge label (original positioning: anchor + offset) ---
     const anchorCoord =
@@ -433,7 +430,7 @@ export function renderClues(
       });
       const partialValue = partialFilled.filter(Boolean).length;
       const partialNotation = computePartialContiguity(partialFilled, partialValue);
-      const partialLabel = formatNeighborClue(partialValue, partialNotation, lineContiguityEnabled);
+      const partialLabel = formatNeighborClue(partialValue, partialNotation, clue.contiguityEnabled);
 
       renderedLabelPositions.push({ x: intLx, y: intLy });
       renderLineLabel(intLx, intLy, mc.x, mc.y, partialLabel, rotation, state, clue.axis, key, svgContainer, options, onLineClueInteraction);

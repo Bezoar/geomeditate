@@ -180,6 +180,14 @@ describe('computeLineClue', () => {
     expect(clue).toHaveProperty('cells');
     expect(clue).toHaveProperty('value');
   });
+
+  it('line clue defaults contiguityEnabled to true', () => {
+    const cells = new Map<string, HexCell>();
+    cells.set('0,0', createCell({ col: 0, row: 0 }, CellGroundTruth.FILLED));
+    cells.set('0,1', createCell({ col: 0, row: 1 }, CellGroundTruth.EMPTY));
+    const clue = computeLineClue({ col: 0, row: 0 }, 'vertical', cells);
+    expect(clue.contiguityEnabled).toBe(true);
+  });
 });
 
 describe('computeAllLineClues', () => {
