@@ -11,6 +11,8 @@ import type { LineClueState } from './view/line-clue-state';
 import { ActionHistory } from './save/history';
 import { serializeSaveFile, deserializeSaveFile } from './save/save-file';
 import { LocalStorageBackend, downloadJsonFile } from './save/storage';
+import { generatePuzzle } from './solver/pipeline';
+import { ReplayController, type ReplayHighlights } from './view/solve-replay';
 
 const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
@@ -22,6 +24,7 @@ let dimmedFlowerClues = new Set<string>();
 let flowerGuideClues = new Set<string>();
 let actionHistory = new ActionHistory();
 const storage = new LocalStorageBackend();
+let replayController: ReplayController | null = null;
 
 const clueOptions: ClueRenderOptions = {
   showHitAreaOutlines: false,
@@ -195,6 +198,44 @@ async function handleClear(): Promise<void> {
   await storage.clearAll();
 }
 
+function handleSolve(): void {
+  const result = generatePuzzle(currentGrid, 'easy');
+  if (result === null) {
+    console.warn('generatePuzzle returned null — puzzle could not be generated');
+    return;
+  }
+  currentGrid.coverAll();
+  actionHistory.clear();
+
+  replayController = new ReplayController(
+    result.replay,
+    (_highlights: ReplayHighlights, stepIndex: number, total: number) => {
+      render();
+      const statusEl = document.getElementById('replay-status');
+      if (statusEl !== null) {
+        if (stepIndex === -1) {
+          statusEl.textContent = 'Step 0/' + String(total);
+        } else if (replayController !== null && replayController.isStuck && stepIndex === total) {
+          statusEl.textContent = 'Stuck';
+        } else {
+          statusEl.textContent = 'Step ' + String(stepIndex + 1) + '/' + String(total);
+        }
+      }
+    },
+    500,
+  );
+
+  const replayDiv = document.getElementById('replay-controls');
+  if (replayDiv !== null) {
+    replayDiv.style.display = '';
+  }
+  const statusEl = document.getElementById('replay-status');
+  if (statusEl !== null) {
+    statusEl.textContent = 'Step 0/' + String(result.replay.steps.length);
+  }
+  render();
+}
+
 initControls(controlsEl, {
   gridNames: TEST_GRIDS.map(g => g.name),
   onGridSelect: loadGrid,
@@ -212,5 +253,47 @@ initControls(controlsEl, {
   onLoad: handleLoad,
   onClear: handleClear,
 });
+
+// Solve button
+const solveBtn = document.createElement('button');
+solveBtn.textContent = 'Solve';
+solveBtn.addEventListener('click', handleSolve);
+controlsEl.appendChild(solveBtn);
+
+// Replay controls (initially hidden)
+const replayDiv = document.createElement('div');
+replayDiv.id = 'replay-controls';
+replayDiv.style.display = 'none';
+
+const prevBtn = document.createElement('button');
+prevBtn.textContent = 'Prev';
+prevBtn.addEventListener('click', () => { replayController?.stepBack(); });
+
+const nextBtn = document.createElement('button');
+nextBtn.textContent = 'Next';
+nextBtn.addEventListener('click', () => { replayController?.stepForward(); });
+
+const playPauseBtn = document.createElement('button');
+playPauseBtn.textContent = 'Play';
+playPauseBtn.addEventListener('click', () => {
+  if (replayController === null) return;
+  if (replayController.isPlaying) {
+    replayController.pause();
+    playPauseBtn.textContent = 'Play';
+  } else {
+    replayController.play();
+    playPauseBtn.textContent = 'Pause';
+  }
+});
+
+const statusSpan = document.createElement('span');
+statusSpan.id = 'replay-status';
+statusSpan.textContent = '';
+
+replayDiv.appendChild(prevBtn);
+replayDiv.appendChild(nextBtn);
+replayDiv.appendChild(playPauseBtn);
+replayDiv.appendChild(statusSpan);
+controlsEl.appendChild(replayDiv);
 
 loadGrid(0);

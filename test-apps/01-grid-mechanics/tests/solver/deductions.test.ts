@@ -9,9 +9,8 @@ import {
   deduceFromFlowerClue,
   deduceFromLineClue,
   deduceFromGlobalRemaining,
-  type Deduction,
 } from '../../src/solver/deductions';
-import { createCell, CellGroundTruth, CellVisualState, ClueNotation } from '../../src/model/hex-cell';
+import { createCell, CellGroundTruth, CellVisualState } from '../../src/model/hex-cell';
 import type { HexCell } from '../../src/model/hex-cell';
 import type { HexCoord } from '../../src/model/hex-coord';
 import { coordKey } from '../../src/model/hex-coord';

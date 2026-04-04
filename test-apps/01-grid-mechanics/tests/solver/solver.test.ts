@@ -4,7 +4,6 @@ import type { TestGridConfig } from '../../src/model/hex-grid';
 import { coordKey } from '../../src/model/hex-coord';
 import { neighborClueId, flowerClueId, lineClueId, GLOBAL_REMAINING_ID } from '../../src/solver/deductions';
 import { solve } from '../../src/solver/solver';
-import type { SolveTier } from '../../src/solver/solver';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

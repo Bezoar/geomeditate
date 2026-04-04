@@ -3,7 +3,6 @@ import type { HexGrid } from '../model/hex-grid';
 import {
   type ClueId,
   type Deduction,
-  GLOBAL_REMAINING_ID,
   parseClueId,
   deduceFromNeighborClue,
   deduceFromFlowerClue,
