@@ -434,4 +434,4 @@ replayDiv.appendChild(playPauseBtn);
 replayDiv.appendChild(statusSpan);
 controlsEl.appendChild(replayDiv);
 
-loadGrid(0);
+loadGrid(3); // Large Grid
