@@ -4,6 +4,7 @@ import type { HexGrid } from '../model/hex-grid';
 import {
   type ClueId,
   type Deduction,
+  GLOBAL_REMAINING_ID,
   parseClueId,
 } from './deductions';
 import { allClueIds } from './clue-selector';
@@ -148,8 +149,13 @@ export function solveProgressively(
   const sim = cloneSimGrid(grid);
   coverAll(sim);
 
+  // Global remaining is always visible (shown on screen) — only used by advanced tier
+  // via solve(). It's not a candidate for progressive reveal.
   const candidates = Array.from(allClueIds(grid));
   const visibleClues = new Set<ClueId>();
+  if (tier === 'advanced') {
+    visibleClues.add(GLOBAL_REMAINING_ID);
+  }
   const steps: SolveStep[] = [];
   const maxIterations = grid.cells.size * 2; // safety bound
 
