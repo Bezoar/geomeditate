@@ -196,42 +196,45 @@ async function handleClear(): Promise<void> {
   await storage.clearAll();
 }
 
-/** Individual cell reveal for step-by-step replay. */
-interface CellReveal {
-  key: string;
-  visualState: CellVisualState;
+/** Individual step in the replay — may or may not change a cell. */
+interface ReplayStep {
+  /** Cell to change, or null for clue-only activations (line clues). */
+  key: string | null;
+  visualState: CellVisualState | null;
   reason: string;
   /** Which clues the solver considers visible at this point. */
   solverVisibleClues?: Set<string>;
 }
 
-/** Flatten replay steps into individual cell reveals. */
-function flattenReplay(replay: import('./solver/verifier').SolveReplay): CellReveal[] {
-  const reveals: CellReveal[] = [];
+/** Flatten replay steps into individual replay steps. */
+function flattenReplay(replay: import('./solver/verifier').SolveReplay): ReplayStep[] {
+  const steps: ReplayStep[] = [];
   for (const step of replay.steps) {
     for (const d of step.deductions) {
-      reveals.push({
-        key: coordKey(d.coord),
-        visualState: d.result === 'filled' ? CellVisualState.MARKED_FILLED : CellVisualState.OPEN_EMPTY,
+      const isClueActivation = d.reason.explanation.startsWith('Solver activated');
+      steps.push({
+        key: isClueActivation ? null : coordKey(d.coord),
+        visualState: isClueActivation ? null : (d.result === 'filled' ? CellVisualState.MARKED_FILLED : CellVisualState.OPEN_EMPTY),
         reason: d.reason.explanation,
         solverVisibleClues: step.visibleClues,
       });
     }
   }
-  return reveals;
+  return steps;
 }
 
-/** Apply reveals up to (and including) index N to the live grid. */
-function applyRevealsUpTo(reveals: CellReveal[], n: number): void {
+/** Apply steps up to (and including) index N to the live grid. */
+function applyStepsUpTo(steps: ReplayStep[], n: number): void {
   // Reset all to covered first
   for (const [key, cell] of currentGrid.cells) {
     if (cell.visualState !== CellVisualState.COVERED) {
       currentGrid.cells.set(key, { ...cell, visualState: CellVisualState.COVERED });
     }
   }
-  // Apply reveals 0..n
+  // Apply cell changes for steps 0..n (skip clue-only activations)
   for (let i = 0; i <= n; i++) {
-    const r = reveals[i];
+    const r = steps[i];
+    if (r.key === null || r.visualState === null) continue; // clue-only step
     const cell = currentGrid.cells.get(r.key);
     if (cell) {
       currentGrid.cells.set(r.key, { ...cell, visualState: r.visualState });
@@ -247,7 +250,7 @@ function applyRevealsUpTo(reveals: CellReveal[], n: number): void {
   currentGrid.remainingCount = remaining;
 
   // Sync line clue visibility with solver state
-  syncLineClueVisibility(n >= 0 && n < reveals.length ? reveals[n].solverVisibleClues : undefined);
+  syncLineClueVisibility(n >= 0 && n < steps.length ? steps[n].solverVisibleClues : undefined);
 }
 
 /** Show only line clues the solver currently sees. */
@@ -263,26 +266,27 @@ function syncLineClueVisibility(solverClues: Set<string> | undefined): void {
   }
 }
 
-let flatReveals: CellReveal[] = [];
+let flatSteps: ReplayStep[] = [];
 let replayIndex = -1;
 let playTimerId: ReturnType<typeof setTimeout> | null = null;
 
 function updateReplayStatus(): void {
   const statusEl = document.getElementById('replay-status');
   if (statusEl === null) return;
-  const stepText = 'Step ' + String(replayIndex + 1) + '/' + String(flatReveals.length);
-  if (replayIndex >= 0 && replayIndex < flatReveals.length) {
-    const r = flatReveals[replayIndex];
-    statusEl.textContent = stepText + ' — ' + r.key + ' ' + r.reason;
+  const stepText = 'Step ' + String(replayIndex + 1) + '/' + String(flatSteps.length);
+  if (replayIndex >= 0 && replayIndex < flatSteps.length) {
+    const r = flatSteps[replayIndex];
+    const cellLabel = r.key !== null ? r.key + ' ' : '';
+    statusEl.textContent = stepText + ' — ' + cellLabel + r.reason;
   } else {
     statusEl.textContent = stepText;
   }
 }
 
 function replayStepForward(): void {
-  if (replayIndex < flatReveals.length - 1) {
+  if (replayIndex < flatSteps.length - 1) {
     replayIndex++;
-    applyRevealsUpTo(flatReveals, replayIndex);
+    applyStepsUpTo(flatSteps, replayIndex);
     updateReplayStatus();
     render();
   }
@@ -295,7 +299,7 @@ function replayStepBack(): void {
       currentGrid.coverAll();
       syncLineClueVisibility(undefined); // hide all line clues
     } else {
-      applyRevealsUpTo(flatReveals, replayIndex);
+      applyStepsUpTo(flatSteps, replayIndex);
     }
     updateReplayStatus();
     render();
@@ -313,7 +317,7 @@ function replayPlay(): void {
   }
   if (playPauseBtn) playPauseBtn.textContent = 'Pause';
   function tick() {
-    if (replayIndex < flatReveals.length - 1) {
+    if (replayIndex < flatSteps.length - 1) {
       replayStepForward();
       playTimerId = setTimeout(tick, 200);
     } else {
@@ -350,7 +354,7 @@ function handleSolve(): void {
     currentGrid.coverAll();
     actionHistory.clear();
 
-    flatReveals = flattenReplay(result.replay);
+    flatSteps = flattenReplay(result.replay);
     replayIndex = -1;
 
     // Hide all line clues — solver starts with none visible
