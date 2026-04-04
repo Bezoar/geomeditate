@@ -276,8 +276,12 @@ function updateReplayStatus(): void {
   const stepText = 'Step ' + String(replayIndex + 1) + '/' + String(flatSteps.length);
   if (replayIndex >= 0 && replayIndex < flatSteps.length) {
     const r = flatSteps[replayIndex];
-    const cellLabel = r.key !== null ? r.key + ' ' : '';
-    statusEl.textContent = stepText + ' — ' + cellLabel + r.reason;
+    if (r.key !== null) {
+      const resultLabel = r.visualState === CellVisualState.MARKED_FILLED ? 'filled' : 'empty';
+      statusEl.textContent = stepText + ' — ' + r.key + ' → ' + resultLabel + ': ' + r.reason;
+    } else {
+      statusEl.textContent = stepText + ' — ' + r.reason;
+    }
   } else {
     statusEl.textContent = stepText;
   }

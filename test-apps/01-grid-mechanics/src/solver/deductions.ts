@@ -131,8 +131,8 @@ export function deduceFromNeighborClue(
   const ck = coordKey(coord);
   return applyDeduction(clueValue, markedFilled, covered, id, (result) =>
     result === 'empty'
-      ? `(${ck}) shows ${clueValue} filled neighbors, ${markedFilled} already found → rest are empty`
-      : `(${ck}) shows ${clueValue} filled neighbors, ${markedFilled} found, ${covered.length} covered → all must be filled`,
+      ? `clue at (${ck}) shows ${clueValue} filled neighbors, ${markedFilled} found`
+      : `clue at (${ck}) shows ${clueValue} filled neighbors, ${markedFilled} found, ${covered.length} covered`,
   );
 }
 
@@ -155,8 +155,8 @@ export function deduceFromFlowerClue(
   const ck = coordKey(coord);
   return applyDeduction(clueValue, markedFilled, covered, id, (result) =>
     result === 'empty'
-      ? `Flower at (${ck}) shows ${clueValue} filled in radius 2, ${markedFilled} already found → rest are empty`
-      : `Flower at (${ck}) shows ${clueValue} filled in radius 2, ${markedFilled} found, ${covered.length} covered → all must be filled`,
+      ? `flower at (${ck}) shows ${clueValue} in radius 2, ${markedFilled} found`
+      : `flower at (${ck}) shows ${clueValue} in radius 2, ${markedFilled} found, ${covered.length} covered`,
   );
 }
 
@@ -170,8 +170,8 @@ export function deduceFromLineClue(lineClue: LineClue, cellMap: Map<string, HexC
   const id = lineClueId(lineClue.axis, lineClue.startCoord);
   return applyDeduction(lineClue.value, markedFilled, covered, id, (result) =>
     result === 'empty'
-      ? `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} already found → rest are empty`
-      : `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} found, ${covered.length} covered → all must be filled`,
+      ? `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} found`
+      : `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} found, ${covered.length} covered`,
   );
 }
 
@@ -194,7 +194,7 @@ export function deduceFromGlobalRemaining(
   }
   return applyDeduction(remainingCount, 0, covered, GLOBAL_REMAINING_ID, (result) =>
     result === 'empty'
-      ? `${remainingCount} filled remaining, 0 needed → all covered are empty`
-      : `${remainingCount} filled remaining = ${covered.length} covered → all must be filled`,
+      ? `${remainingCount} filled remaining, 0 needed`
+      : `${remainingCount} filled remaining = ${covered.length} covered`,
   );
 }

@@ -64,7 +64,7 @@ function revealClue(sim: SimGrid, clueId: ClueId): Deduction | null {
       return {
         coord: parsed.coord,
         result: 'empty',
-        reason: { clueIds: [clueId], explanation: `Hint: (${key}) is empty, shows ${cell.neighborClueValue} filled neighbors` },
+        reason: { clueIds: [clueId], explanation: `hint revealed — shows ${cell.neighborClueValue} filled neighbors` },
       };
     }
   } else if (parsed.type === 'flower') {
@@ -76,7 +76,7 @@ function revealClue(sim: SimGrid, clueId: ClueId): Deduction | null {
       return {
         coord: parsed.coord,
         result: 'filled',
-        reason: { clueIds: [clueId], explanation: `Hint: (${key}) is filled, shows ${cell.flowerClueValue} filled in radius 2` },
+        reason: { clueIds: [clueId], explanation: `hint revealed — shows ${cell.flowerClueValue} filled in radius 2` },
       };
     }
   }
