@@ -76,7 +76,7 @@ function revealClue(sim: SimGrid, clueId: ClueId): Deduction | null {
       return {
         coord: parsed.coord,
         result: 'filled',
-        reason: { clueIds: [clueId], explanation: `hint revealed — shows ${cell.flowerClueValue} filled in radius 2` },
+        reason: { clueIds: [clueId], explanation: `hint revealed — shows ${cell.flowerClueValue} filled nearby` },
       };
     }
   }

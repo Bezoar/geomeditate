@@ -155,8 +155,8 @@ export function deduceFromFlowerClue(
   const ck = coordKey(coord);
   return applyDeduction(clueValue, markedFilled, covered, id, (result) =>
     result === 'empty'
-      ? `flower at (${ck}) shows ${clueValue} in radius 2, ${markedFilled} found`
-      : `flower at (${ck}) shows ${clueValue} in radius 2, ${markedFilled} found, ${covered.length} covered`,
+      ? `flower at (${ck}) shows ${clueValue} ,${markedFilled} found`
+      : `flower at (${ck}) shows ${clueValue} ,${markedFilled} found, ${covered.length} covered`,
   );
 }
 
