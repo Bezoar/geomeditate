@@ -201,6 +201,8 @@ interface CellReveal {
   key: string;
   visualState: CellVisualState;
   reason: string;
+  /** Which clues the solver considers visible at this point. */
+  solverVisibleClues?: Set<string>;
 }
 
 /** Flatten replay steps into individual cell reveals. */
@@ -212,6 +214,7 @@ function flattenReplay(replay: import('./solver/verifier').SolveReplay): CellRev
         key: coordKey(d.coord),
         visualState: d.result === 'filled' ? CellVisualState.MARKED_FILLED : CellVisualState.OPEN_EMPTY,
         reason: d.reason.explanation,
+        solverVisibleClues: step.visibleClues,
       });
     }
   }
@@ -242,6 +245,22 @@ function applyRevealsUpTo(reveals: CellReveal[], n: number): void {
     }
   }
   currentGrid.remainingCount = remaining;
+
+  // Sync line clue visibility with solver state
+  syncLineClueVisibility(n >= 0 && n < reveals.length ? reveals[n].solverVisibleClues : undefined);
+}
+
+/** Show only line clues the solver currently sees. */
+function syncLineClueVisibility(solverClues: Set<string> | undefined): void {
+  for (const lc of currentGrid.lineClues) {
+    const lcKey = `${lc.axis}:${coordKey(lc.startCoord)}`;
+    const solverClueId = `line:${lcKey}`;
+    const isVisible = solverClues !== undefined && solverClues.has(solverClueId);
+    lineClueStates.set(lcKey, {
+      visibility: isVisible ? 'visible' : 'invisible',
+      savedVisibility: 'visible',
+    });
+  }
 }
 
 let flatReveals: CellReveal[] = [];
@@ -274,6 +293,7 @@ function replayStepBack(): void {
     replayIndex--;
     if (replayIndex === -1) {
       currentGrid.coverAll();
+      syncLineClueVisibility(undefined); // hide all line clues
     } else {
       applyRevealsUpTo(flatReveals, replayIndex);
     }
@@ -333,6 +353,8 @@ function handleSolve(): void {
     flatReveals = flattenReplay(result.replay);
     replayIndex = -1;
 
+    // Hide all line clues — solver starts with none visible
+    syncLineClueVisibility(undefined);
     updateReplayStatus();
     render();
   }, 0);

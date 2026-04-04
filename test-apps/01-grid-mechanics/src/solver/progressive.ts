@@ -148,17 +148,8 @@ export function solveProgressively(
   const sim = cloneSimGrid(grid);
   coverAll(sim);
 
-  const allIds = allClueIds(grid);
+  const candidates = Array.from(allClueIds(grid));
   const visibleClues = new Set<ClueId>();
-
-  // Line clues are always displayed on the board — start with them visible.
-  // Only neighbor and flower clues need progressive reveal.
-  for (const id of allIds) {
-    if (id.startsWith('line:')) visibleClues.add(id);
-  }
-
-  // Candidates for progressive reveal: non-line clues only
-  const candidates = Array.from(allIds).filter(id => !id.startsWith('line:'));
   const steps: SolveStep[] = [];
   const maxIterations = grid.cells.size * 2; // safety bound
 
@@ -180,7 +171,11 @@ export function solveProgressively(
         } else {
           sim.cells.set(key, { ...cell, visualState: CellVisualState.OPEN_EMPTY });
         }
-        steps.push({ deductions: [d], boardState: snapshotBoardState(sim.cells) });
+        steps.push({
+          deductions: [d],
+          boardState: snapshotBoardState(sim.cells),
+          visibleClues: new Set(visibleClues),
+        });
       }
       continue;
     }
@@ -192,9 +187,28 @@ export function solveProgressively(
     visibleClues.add(bestClue);
     const revealDeduction = revealClue(sim, bestClue);
     if (revealDeduction) {
-      steps.push({ deductions: [revealDeduction], boardState: snapshotBoardState(sim.cells) });
+      // Cell-based clue reveal (neighbor/flower)
+      steps.push({
+        deductions: [revealDeduction],
+        boardState: snapshotBoardState(sim.cells),
+        visibleClues: new Set(visibleClues),
+      });
+    } else {
+      // Non-cell clue (line/global) — record activation as a step with no cell change
+      const parsed = parseClueId(bestClue);
+      const explanation = parsed.type === 'line'
+        ? `Solver activated ${parsed.axis} line clue at (${coordKey(parsed.coord)})`
+        : `Solver activated global remaining count`;
+      steps.push({
+        deductions: [{
+          coord: parsed.type === 'line' ? parsed.coord : { col: 0, row: 0 },
+          result: 'empty',
+          reason: { clueIds: [bestClue], explanation },
+        }],
+        boardState: snapshotBoardState(sim.cells),
+        visibleClues: new Set(visibleClues),
+      });
     }
-    // Line/global clues don't produce a reveal deduction but may enable deductions on next loop
   }
 
   // Check for stuck cells

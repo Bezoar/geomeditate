@@ -7,6 +7,8 @@ import { type SolveTier, solve } from './solver';
 export interface SolveStep {
   deductions: Deduction[];
   boardState: Map<string, CellVisualState>;
+  /** Clues the solver considers visible at this step (set by progressive solver). */
+  visibleClues?: Set<ClueId>;
 }
 
 export interface SolveReplay {
