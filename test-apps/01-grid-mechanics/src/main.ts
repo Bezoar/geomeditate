@@ -12,7 +12,6 @@ import { ActionHistory } from './save/history';
 import { serializeSaveFile, deserializeSaveFile } from './save/save-file';
 import { LocalStorageBackend, downloadJsonFile } from './save/storage';
 import { generatePuzzle } from './solver/pipeline';
-import { ReplayController, type ReplayHighlights } from './view/solve-replay';
 
 const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
@@ -24,7 +23,6 @@ let dimmedFlowerClues = new Set<string>();
 let flowerGuideClues = new Set<string>();
 let actionHistory = new ActionHistory();
 const storage = new LocalStorageBackend();
-let replayController: ReplayController | null = null;
 
 const clueOptions: ClueRenderOptions = {
   showHitAreaOutlines: false,
@@ -198,35 +196,111 @@ async function handleClear(): Promise<void> {
   await storage.clearAll();
 }
 
-/** Apply a board state snapshot from the verifier to the live grid. */
-function applyBoardState(boardState: Map<string, CellVisualState>): void {
-  let remaining = 0;
-  for (const [key, cell] of currentGrid.cells) {
-    const newState = boardState.get(key);
-    if (newState !== undefined && newState !== cell.visualState) {
-      currentGrid.cells.set(key, { ...cell, visualState: newState });
+/** Individual cell reveal for step-by-step replay. */
+interface CellReveal {
+  key: string;
+  visualState: CellVisualState;
+}
+
+/** Flatten all replay steps into individual cell reveals. */
+function flattenReplay(replay: import('./solver/verifier').SolveReplay): CellReveal[] {
+  const reveals: CellReveal[] = [];
+  for (const step of replay.steps) {
+    for (const d of step.deductions) {
+      const key = coordKey(d.coord);
+      reveals.push({
+        key,
+        visualState: d.result === 'filled' ? CellVisualState.MARKED_FILLED : CellVisualState.OPEN_EMPTY,
+      });
     }
-    const c = currentGrid.cells.get(key)!;
-    if (c.groundTruth === CellGroundTruth.FILLED && c.visualState !== CellVisualState.MARKED_FILLED) {
+  }
+  return reveals;
+}
+
+/** Apply reveals up to (and including) index N to the live grid. */
+function applyRevealsUpTo(reveals: CellReveal[], n: number): void {
+  // Reset all to covered first
+  for (const [key, cell] of currentGrid.cells) {
+    if (cell.visualState !== CellVisualState.COVERED) {
+      currentGrid.cells.set(key, { ...cell, visualState: CellVisualState.COVERED });
+    }
+  }
+  // Apply reveals 0..n
+  for (let i = 0; i <= n; i++) {
+    const r = reveals[i];
+    const cell = currentGrid.cells.get(r.key);
+    if (cell) {
+      currentGrid.cells.set(r.key, { ...cell, visualState: r.visualState });
+    }
+  }
+  // Recount remaining
+  let remaining = 0;
+  for (const cell of currentGrid.cells.values()) {
+    if (cell.groundTruth === CellGroundTruth.FILLED && cell.visualState !== CellVisualState.MARKED_FILLED) {
       remaining++;
     }
   }
   currentGrid.remainingCount = remaining;
 }
 
-function updateReplayStatus(stepIndex: number, total: number): void {
+let flatReveals: CellReveal[] = [];
+let replayIndex = -1;
+let playTimerId: ReturnType<typeof setTimeout> | null = null;
+
+function updateReplayStatus(): void {
   const statusEl = document.getElementById('replay-status');
   if (statusEl === null) return;
-  if (stepIndex === -1) {
-    statusEl.textContent = 'Step 0/' + String(total);
-  } else if (replayController !== null && replayController.isStuck && stepIndex === total) {
-    statusEl.textContent = 'Stuck';
-  } else {
-    statusEl.textContent = 'Step ' + String(stepIndex + 1) + '/' + String(total);
+  statusEl.textContent = 'Step ' + String(replayIndex + 1) + '/' + String(flatReveals.length);
+}
+
+function replayStepForward(): void {
+  if (replayIndex < flatReveals.length - 1) {
+    replayIndex++;
+    applyRevealsUpTo(flatReveals, replayIndex);
+    updateReplayStatus();
+    render();
   }
 }
 
+function replayStepBack(): void {
+  if (replayIndex >= 0) {
+    replayIndex--;
+    if (replayIndex === -1) {
+      currentGrid.coverAll();
+    } else {
+      applyRevealsUpTo(flatReveals, replayIndex);
+    }
+    updateReplayStatus();
+    render();
+  }
+}
+
+function replayPlay(): void {
+  const playPauseBtn = document.getElementById('play-pause-btn');
+  if (playTimerId !== null) {
+    // Pause
+    clearTimeout(playTimerId);
+    playTimerId = null;
+    if (playPauseBtn) playPauseBtn.textContent = 'Play';
+    return;
+  }
+  if (playPauseBtn) playPauseBtn.textContent = 'Pause';
+  function tick() {
+    if (replayIndex < flatReveals.length - 1) {
+      replayStepForward();
+      playTimerId = setTimeout(tick, 200);
+    } else {
+      playTimerId = null;
+      if (playPauseBtn) playPauseBtn.textContent = 'Play';
+    }
+  }
+  tick();
+}
+
 function handleSolve(): void {
+  // Stop any playing replay
+  if (playTimerId !== null) { clearTimeout(playTimerId); playTimerId = null; }
+
   // Show "Solving..." feedback immediately, defer expensive work
   const solveButton = document.getElementById('solve-btn') as HTMLButtonElement | null;
   const statusEl = document.getElementById('replay-status');
@@ -249,27 +323,10 @@ function handleSolve(): void {
     currentGrid.coverAll();
     actionHistory.clear();
 
-    replayController = new ReplayController(
-      result.replay,
-      (_highlights: ReplayHighlights, stepIndex: number, total: number) => {
-        // Apply the board state snapshot to the live grid
-        if (stepIndex === -1) {
-          // Reset to all covered
-          currentGrid.coverAll();
-        } else if (stepIndex < result.replay.steps.length) {
-          applyBoardState(result.replay.steps[stepIndex].boardState);
-        } else if (result.replay.stuck && stepIndex === result.replay.steps.length) {
-          // Stuck state — show last known board state
-          const lastStep = result.replay.steps[result.replay.steps.length - 1];
-          if (lastStep) applyBoardState(lastStep.boardState);
-        }
-        updateReplayStatus(stepIndex, total);
-        render();
-      },
-      500,
-    );
+    flatReveals = flattenReplay(result.replay);
+    replayIndex = -1;
 
-    if (statusEl !== null) statusEl.textContent = 'Step 0/' + String(result.replay.steps.length);
+    updateReplayStatus();
     render();
   }, 0);
 }
@@ -319,24 +376,16 @@ replayDiv.style.display = 'none';
 
 const prevBtn = document.createElement('button');
 prevBtn.textContent = 'Prev';
-prevBtn.addEventListener('click', () => { replayController?.stepBack(); });
+prevBtn.addEventListener('click', replayStepBack);
 
 const nextBtn = document.createElement('button');
 nextBtn.textContent = 'Next';
-nextBtn.addEventListener('click', () => { replayController?.stepForward(); });
+nextBtn.addEventListener('click', replayStepForward);
 
 const playPauseBtn = document.createElement('button');
+playPauseBtn.id = 'play-pause-btn';
 playPauseBtn.textContent = 'Play';
-playPauseBtn.addEventListener('click', () => {
-  if (replayController === null) return;
-  if (replayController.isPlaying) {
-    replayController.pause();
-    playPauseBtn.textContent = 'Play';
-  } else {
-    replayController.play();
-    playPauseBtn.textContent = 'Pause';
-  }
-});
+playPauseBtn.addEventListener('click', replayPlay);
 
 const statusSpan = document.createElement('span');
 statusSpan.id = 'replay-status';
