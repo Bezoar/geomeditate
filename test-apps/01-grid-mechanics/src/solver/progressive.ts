@@ -5,6 +5,8 @@ import {
   type ClueId,
   type Deduction,
   GLOBAL_REMAINING_ID,
+  neighborClueId,
+  flowerClueId,
   parseClueId,
 } from './deductions';
 import { allClueIds } from './clue-selector';
@@ -174,8 +176,12 @@ export function solveProgressively(
         if (d.result === 'filled') {
           sim.cells.set(key, { ...cell, visualState: CellVisualState.MARKED_FILLED });
           if (cell.groundTruth === CellGroundTruth.FILLED) sim.remainingCount--;
+          // Marking a cell as filled reveals its flower clue
+          if (cell.flowerClueValue !== null) visibleClues.add(flowerClueId(d.coord));
         } else {
           sim.cells.set(key, { ...cell, visualState: CellVisualState.OPEN_EMPTY });
+          // Opening an empty cell reveals its neighbor clue
+          if (cell.neighborClueValue !== null) visibleClues.add(neighborClueId(d.coord));
         }
         steps.push({
           deductions: [d],
