@@ -148,8 +148,17 @@ export function solveProgressively(
   const sim = cloneSimGrid(grid);
   coverAll(sim);
 
-  const candidates = Array.from(allClueIds(grid));
+  const allIds = allClueIds(grid);
   const visibleClues = new Set<ClueId>();
+
+  // Line clues are always displayed on the board — start with them visible.
+  // Only neighbor and flower clues need progressive reveal.
+  for (const id of allIds) {
+    if (id.startsWith('line:')) visibleClues.add(id);
+  }
+
+  // Candidates for progressive reveal: non-line clues only
+  const candidates = Array.from(allIds).filter(id => !id.startsWith('line:'));
   const steps: SolveStep[] = [];
   const maxIterations = grid.cells.size * 2; // safety bound
 
