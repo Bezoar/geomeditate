@@ -55,9 +55,9 @@ describe('solveProgressively', () => {
     const grid = makeGrid(3, 1, [{ col: 1, row: 0 }]);
     const replay = solveProgressively(grid, 'simple');
 
-    // Should have at least one "Revealed clue" step
+    // Should have at least one "Hint:" step (clue reveal)
     const hasReveal = replay.steps.some(s =>
-      s.deductions.some(d => d.reason.explanation.startsWith('Revealed clue:')),
+      s.deductions.some(d => d.reason.explanation.startsWith('Hint:')),
     );
     expect(hasReveal).toBe(true);
     expect(replay.stuck).toBe(false);

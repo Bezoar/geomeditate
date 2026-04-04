@@ -128,10 +128,11 @@ export function deduceFromNeighborClue(
 
   const { markedFilled, covered } = countStates(neighbors(coord), cellMap);
   const id = neighborClueId(coord);
+  const ck = coordKey(coord);
   return applyDeduction(clueValue, markedFilled, covered, id, (result) =>
     result === 'empty'
-      ? `Neighbor clue ${clueValue} at ${coordKey(coord)} already satisfied; covered neighbors are empty`
-      : `Neighbor clue ${clueValue} at ${coordKey(coord)} needs all ${covered.length} covered neighbors filled`,
+      ? `(${ck}) shows ${clueValue} filled neighbors, ${markedFilled} already found → rest are empty`
+      : `(${ck}) shows ${clueValue} filled neighbors, ${markedFilled} found, ${covered.length} covered → all must be filled`,
   );
 }
 
@@ -151,10 +152,11 @@ export function deduceFromFlowerClue(
 
   const { markedFilled, covered } = countStates(radius2Positions(coord), cellMap);
   const id = flowerClueId(coord);
+  const ck = coordKey(coord);
   return applyDeduction(clueValue, markedFilled, covered, id, (result) =>
     result === 'empty'
-      ? `Flower clue ${clueValue} at ${coordKey(coord)} already satisfied; covered radius-2 cells are empty`
-      : `Flower clue ${clueValue} at ${coordKey(coord)} needs all ${covered.length} covered radius-2 cells filled`,
+      ? `Flower at (${ck}) shows ${clueValue} filled in radius 2, ${markedFilled} already found → rest are empty`
+      : `Flower at (${ck}) shows ${clueValue} filled in radius 2, ${markedFilled} found, ${covered.length} covered → all must be filled`,
   );
 }
 
@@ -168,8 +170,8 @@ export function deduceFromLineClue(lineClue: LineClue, cellMap: Map<string, HexC
   const id = lineClueId(lineClue.axis, lineClue.startCoord);
   return applyDeduction(lineClue.value, markedFilled, covered, id, (result) =>
     result === 'empty'
-      ? `Line clue ${lineClue.value} (${lineClue.axis}) already satisfied; covered cells are empty`
-      : `Line clue ${lineClue.value} (${lineClue.axis}) needs all ${covered.length} covered cells filled`,
+      ? `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} already found → rest are empty`
+      : `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} found, ${covered.length} covered → all must be filled`,
   );
 }
 
@@ -192,7 +194,7 @@ export function deduceFromGlobalRemaining(
   }
   return applyDeduction(remainingCount, 0, covered, GLOBAL_REMAINING_ID, (result) =>
     result === 'empty'
-      ? `Global remaining is 0; all covered cells are empty`
-      : `Global remaining ${remainingCount} equals covered count; all covered cells are filled`,
+      ? `${remainingCount} filled remaining, 0 needed → all covered are empty`
+      : `${remainingCount} filled remaining = ${covered.length} covered → all must be filled`,
   );
 }
