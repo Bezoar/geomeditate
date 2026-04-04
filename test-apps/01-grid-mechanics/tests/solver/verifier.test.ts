@@ -188,8 +188,31 @@ describe('verify', () => {
     const replay = verify(grid, visibleClues, 'simple');
 
     // After pre-reveal, (0,0) is OPEN_EMPTY. No covered cells remain.
-    // The solver produces no deductions → no steps.
-    expect(replay.steps).toHaveLength(0);
+    // The only step is the pre-reveal step itself.
+    expect(replay.steps).toHaveLength(1);
+    expect(replay.steps[0].deductions[0].reason.explanation).toBe('Pre-revealed by clue selection');
     expect(replay.stuck).toBe(false);
+  });
+
+  it('handles grid with cells already revealed (not covered)', () => {
+    // Don't call coverAll() — cells start in revealed state from constructor
+    const config: TestGridConfig = {
+      name: 'revealed-grid',
+      description: 'grid without coverAll',
+      width: 2,
+      height: 1,
+      filledCoords: [{ col: 0, row: 0 }],
+      missingCoords: [],
+    };
+    const grid = new HexGrid(config);
+    grid.computeAllClues();
+    // Note: no coverAll() — cells are in OPEN_EMPTY / MARKED_FILLED state
+
+    const visibleClues = new Set([neighborClueId({ col: 1, row: 0 })]);
+    const replay = verify(grid, visibleClues, 'simple');
+
+    // Verifier should still work — it covers cells internally
+    expect(replay.stuck).toBe(false);
+    expect(replay.steps.length).toBeGreaterThan(0);
   });
 });

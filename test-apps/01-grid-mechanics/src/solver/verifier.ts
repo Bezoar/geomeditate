@@ -104,16 +104,69 @@ function applyDeductions(sim: SimGrid, deductions: Deduction[]): void {
 }
 
 /**
+ * Collect deductions that describe the pre-reveal of clue cells.
+ * These aren't deductions from the solver — they represent which cells were
+ * revealed because their clues were selected.
+ */
+function collectPreRevealDeductions(
+  before: Map<string, CellVisualState>,
+  after: SimGrid,
+): Deduction[] {
+  const deductions: Deduction[] = [];
+  for (const [key, cell] of after.cells) {
+    const prev = before.get(key);
+    if (prev === CellVisualState.COVERED && cell.visualState !== CellVisualState.COVERED) {
+      const [colStr, rowStr] = key.split(',');
+      deductions.push({
+        coord: { col: Number(colStr), row: Number(rowStr) },
+        result: cell.visualState === CellVisualState.MARKED_FILLED ? 'filled' : 'empty',
+        reason: {
+          clueIds: [],
+          explanation: 'Pre-revealed by clue selection',
+        },
+      });
+    }
+  }
+  return deductions;
+}
+
+/**
  * Run the solver in a loop against a cloned grid and produce a SolveReplay.
  * The original grid is never mutated.
  */
 export function verify(grid: HexGrid, visibleClues: Set<ClueId>, tier: SolveTier): SolveReplay {
   const sim = cloneSimGrid(grid);
 
+  // Ensure all cells start covered — the verifier simulates a full solve from scratch
+  let filledCount = 0;
+  for (const [key, cell] of sim.cells) {
+    if (cell.visualState !== CellVisualState.COVERED) {
+      sim.cells.set(key, { ...cell, visualState: CellVisualState.COVERED });
+    }
+    if (cell.groundTruth === CellGroundTruth.FILLED) filledCount++;
+  }
+  sim.remainingCount = filledCount;
+
+  // Snapshot the all-covered state before pre-reveal
+  const beforePreReveal = new Map<string, CellVisualState>();
+  for (const [key, cell] of sim.cells) {
+    beforePreReveal.set(key, cell.visualState);
+  }
+
   // Pre-reveal cells that host visible clues
   preRevealClueCells(sim, visibleClues);
 
   const steps: SolveStep[] = [];
+
+  // Emit a pre-reveal step if any cells were revealed
+  const preRevealDeductions = collectPreRevealDeductions(beforePreReveal, sim);
+  if (preRevealDeductions.length > 0) {
+    steps.push({
+      deductions: preRevealDeductions,
+      boardState: snapshotBoardState(sim.cells),
+    });
+  }
+
   const maxIterations = grid.cells.size;
 
   for (let i = 0; i < maxIterations; i++) {

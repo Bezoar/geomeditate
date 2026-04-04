@@ -6,7 +6,7 @@ import { renderClues, type ClueRenderOptions } from './view/clue-renderer';
 import { initControls } from './view/controls';
 import { coordKey } from './model/hex-coord';
 import type { HexCoord } from './model/hex-coord';
-import { CellVisualState } from './model/hex-cell';
+import { CellGroundTruth, CellVisualState } from './model/hex-cell';
 import type { LineClueState } from './view/line-clue-state';
 import { ActionHistory } from './save/history';
 import { serializeSaveFile, deserializeSaveFile } from './save/save-file';
@@ -198,42 +198,80 @@ async function handleClear(): Promise<void> {
   await storage.clearAll();
 }
 
-function handleSolve(): void {
-  const result = generatePuzzle(currentGrid, 'easy');
-  if (result === null) {
-    console.warn('generatePuzzle returned null — puzzle could not be generated');
-    return;
+/** Apply a board state snapshot from the verifier to the live grid. */
+function applyBoardState(boardState: Map<string, CellVisualState>): void {
+  let remaining = 0;
+  for (const [key, cell] of currentGrid.cells) {
+    const newState = boardState.get(key);
+    if (newState !== undefined && newState !== cell.visualState) {
+      currentGrid.cells.set(key, { ...cell, visualState: newState });
+    }
+    const c = currentGrid.cells.get(key)!;
+    if (c.groundTruth === CellGroundTruth.FILLED && c.visualState !== CellVisualState.MARKED_FILLED) {
+      remaining++;
+    }
   }
-  currentGrid.coverAll();
-  actionHistory.clear();
+  currentGrid.remainingCount = remaining;
+}
 
-  replayController = new ReplayController(
-    result.replay,
-    (_highlights: ReplayHighlights, stepIndex: number, total: number) => {
-      render();
-      const statusEl = document.getElementById('replay-status');
-      if (statusEl !== null) {
-        if (stepIndex === -1) {
-          statusEl.textContent = 'Step 0/' + String(total);
-        } else if (replayController !== null && replayController.isStuck && stepIndex === total) {
-          statusEl.textContent = 'Stuck';
-        } else {
-          statusEl.textContent = 'Step ' + String(stepIndex + 1) + '/' + String(total);
-        }
-      }
-    },
-    500,
-  );
-
-  const replayDiv = document.getElementById('replay-controls');
-  if (replayDiv !== null) {
-    replayDiv.style.display = '';
-  }
+function updateReplayStatus(stepIndex: number, total: number): void {
   const statusEl = document.getElementById('replay-status');
-  if (statusEl !== null) {
-    statusEl.textContent = 'Step 0/' + String(result.replay.steps.length);
+  if (statusEl === null) return;
+  if (stepIndex === -1) {
+    statusEl.textContent = 'Step 0/' + String(total);
+  } else if (replayController !== null && replayController.isStuck && stepIndex === total) {
+    statusEl.textContent = 'Stuck';
+  } else {
+    statusEl.textContent = 'Step ' + String(stepIndex + 1) + '/' + String(total);
   }
-  render();
+}
+
+function handleSolve(): void {
+  // Show "Solving..." feedback immediately, defer expensive work
+  const solveButton = document.getElementById('solve-btn') as HTMLButtonElement | null;
+  const statusEl = document.getElementById('replay-status');
+  if (statusEl !== null) statusEl.textContent = 'Solving...';
+  const replayDiv = document.getElementById('replay-controls');
+  if (replayDiv !== null) replayDiv.style.display = '';
+  if (solveButton !== null) { solveButton.disabled = true; solveButton.textContent = 'Solving...'; }
+
+  setTimeout(() => {
+    const diffSelect = document.getElementById('difficulty-select') as HTMLSelectElement | null;
+    const difficulty = (diffSelect?.value === 'hard' ? 'hard' : 'easy') as 'easy' | 'hard';
+    const result = generatePuzzle(currentGrid, difficulty);
+    if (solveButton !== null) { solveButton.disabled = false; solveButton.textContent = 'Solve'; }
+
+    if (result === null) {
+      if (statusEl !== null) statusEl.textContent = 'No solution found';
+      return;
+    }
+
+    currentGrid.coverAll();
+    actionHistory.clear();
+
+    replayController = new ReplayController(
+      result.replay,
+      (_highlights: ReplayHighlights, stepIndex: number, total: number) => {
+        // Apply the board state snapshot to the live grid
+        if (stepIndex === -1) {
+          // Reset to all covered
+          currentGrid.coverAll();
+        } else if (stepIndex < result.replay.steps.length) {
+          applyBoardState(result.replay.steps[stepIndex].boardState);
+        } else if (result.replay.stuck && stepIndex === result.replay.steps.length) {
+          // Stuck state — show last known board state
+          const lastStep = result.replay.steps[result.replay.steps.length - 1];
+          if (lastStep) applyBoardState(lastStep.boardState);
+        }
+        updateReplayStatus(stepIndex, total);
+        render();
+      },
+      500,
+    );
+
+    if (statusEl !== null) statusEl.textContent = 'Step 0/' + String(result.replay.steps.length);
+    render();
+  }, 0);
 }
 
 initControls(controlsEl, {
@@ -254,8 +292,22 @@ initControls(controlsEl, {
   onClear: handleClear,
 });
 
+// Difficulty selector
+const difficultySelect = document.createElement('select');
+difficultySelect.id = 'difficulty-select';
+const easyOpt = document.createElement('option');
+easyOpt.value = 'easy';
+easyOpt.textContent = 'Easy';
+const hardOpt = document.createElement('option');
+hardOpt.value = 'hard';
+hardOpt.textContent = 'Hard';
+difficultySelect.appendChild(easyOpt);
+difficultySelect.appendChild(hardOpt);
+controlsEl.appendChild(difficultySelect);
+
 // Solve button
 const solveBtn = document.createElement('button');
+solveBtn.id = 'solve-btn';
 solveBtn.textContent = 'Solve';
 solveBtn.addEventListener('click', handleSolve);
 controlsEl.appendChild(solveBtn);
