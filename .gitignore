@@ -234,3 +234,7 @@ dist/
 # Test / coverage (JS)
 coverage/
 .vitest/
+.vite
+
+# Temp files
+.playwright-mcp
