@@ -253,14 +253,50 @@ function applyStepsUpTo(steps: ReplayStep[], n: number): void {
   syncLineClueVisibility(n >= 0 && n < steps.length ? steps[n].solverVisibleClues : undefined);
 }
 
-/** Show only line clues the solver currently sees. */
+/** Build activeLineSegments map from solver's visible clues. */
+function buildActiveSegments(solverClues: Set<string> | undefined): Map<string, Set<number>> | undefined {
+  if (solverClues === undefined) return undefined;
+  const active = new Map<string, Set<number>>();
+  for (const id of solverClues) {
+    if (!id.startsWith('lineseg:')) continue;
+    // Parse lineseg:axis:col,row:N
+    const rest = id.slice('lineseg:'.length);
+    const lastColon = rest.lastIndexOf(':');
+    const lineKey = rest.slice(0, lastColon); // axis:col,row
+    const segIdx = Number(rest.slice(lastColon + 1));
+    let segs = active.get(lineKey);
+    if (!segs) { segs = new Set(); active.set(lineKey, segs); }
+    segs.add(segIdx);
+  }
+  // Also check for full line: clues
+  for (const id of solverClues) {
+    if (!id.startsWith('line:')) continue;
+    const lineKey = id.slice('line:'.length); // axis:col,row
+    if (!active.has(lineKey)) {
+      // Full line active but no segments — show all segments
+      const allSegs = new Set<number>();
+      const lc = currentGrid.lineClues.find(l =>
+        `${l.axis}:${coordKey(l.startCoord)}` === lineKey);
+      if (lc) {
+        for (let i = 0; i < lc.segments.length; i++) allSegs.add(i);
+        active.set(lineKey, allSegs);
+      }
+    }
+  }
+  return active;
+}
+
+/** Sync line clue visibility with solver state. */
 function syncLineClueVisibility(solverClues: Set<string> | undefined): void {
+  const activeSegs = buildActiveSegments(solverClues);
+  clueOptions.activeLineSegments = activeSegs;
+
+  // Set line-level visibility: visible if any segment active
   for (const lc of currentGrid.lineClues) {
     const lcKey = `${lc.axis}:${coordKey(lc.startCoord)}`;
-    const solverClueId = `line:${lcKey}`;
-    const isVisible = solverClues !== undefined && solverClues.has(solverClueId);
+    const hasActive = activeSegs !== undefined && activeSegs.has(lcKey);
     lineClueStates.set(lcKey, {
-      visibility: isVisible ? 'visible' : 'invisible',
+      visibility: hasActive ? 'visible' : 'invisible',
       savedVisibility: 'visible',
     });
   }

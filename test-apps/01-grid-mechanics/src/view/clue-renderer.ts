@@ -189,6 +189,13 @@ export interface LineClueInteraction {
 export interface ClueRenderOptions {
   showHitAreaOutlines: boolean;
   selectionEnabled: boolean;
+  /**
+   * When set, only render line clue labels for active segments.
+   * Key: line clue key (axis:col,row), Value: set of active segment indices.
+   * Edge labels show when any segment is active.
+   * If undefined, all labels render normally (non-replay mode).
+   */
+  activeLineSegments?: Map<string, Set<number>>;
 }
 
 function renderFlowerGuide(
@@ -340,6 +347,23 @@ export function renderClues(
     const key = lineClueKey(clue);
     const { dx, dy, rotation } = lineClueOffset(clue.axis);
 
+    // When activeLineSegments is set, filter by segment visibility
+    const activeSegs = options.activeLineSegments?.get(key);
+    const segmentFiltering = options.activeLineSegments !== undefined;
+    const anySegActive = activeSegs !== undefined && activeSegs.size > 0;
+
+    // In segment-filtering mode, skip entirely if no segments active
+    if (segmentFiltering && !anySegActive) continue;
+
+    // Build labelPosition → segment index map for interior label filtering
+    const labelPosToSeg = new Map<string, number>();
+    for (let si = 0; si < clue.segments.length; si++) {
+      const seg = clue.segments[si];
+      if (seg.labelPosition !== null) {
+        labelPosToSeg.set(coordKey(seg.labelPosition), si);
+      }
+    }
+
     // Render guide line (behind text) if visible-with-line
     if (state.visibility === 'visible-with-line') {
       renderGuideLine(clue, svgContainer);
@@ -375,10 +399,12 @@ export function renderClues(
     }
 
     // --- Interior labels: missing cells adjacent to an active cell ---
-    // All labels face "downward": they describe cells going down/down-right/down-left.
-    // For vertical/descending: the next cell FORWARD is active; count forward to end.
-    // For ascending: the cell BELOW-LEFT (predecessor) is active; count backward to start.
     for (const mp of clue.labelPositions) {
+      // In segment-filtering mode, only show this label if its segment is active
+      if (segmentFiltering) {
+        const segIdx = labelPosToSeg.get(coordKey(mp));
+        if (segIdx === undefined || !activeSegs?.has(segIdx)) continue;
+      }
       let adjacentKey: string;
       let intLx: number, intLy: number;
       let partialCells: HexCoord[];

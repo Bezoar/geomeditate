@@ -151,9 +151,9 @@ export function solveProgressively(
   const sim = cloneSimGrid(grid);
   coverAll(sim);
 
-  // Global remaining is always visible (shown on screen) — only used by advanced tier
-  // via solve(). It's not a candidate for progressive reveal.
-  const candidates = Array.from(allClueIds(grid));
+  // Global remaining is always visible — only used by advanced tier via solve().
+  // Full line: clues are excluded — the solver works with lineseg: for granular control.
+  const candidates = Array.from(allClueIds(grid)).filter(id => !id.startsWith('line:'));
   const visibleClues = new Set<ClueId>();
   if (tier === 'advanced') {
     visibleClues.add(GLOBAL_REMAINING_ID);
