@@ -2,6 +2,15 @@ import type { HexCoord, LineAxis } from '../model/hex-coord';
 import { coordKey, stepInDirection } from '../model/hex-coord';
 import { CellGroundTruth, ClueNotation, type HexCell } from '../model/hex-cell';
 
+export interface LineSegment {
+  cells: HexCoord[];
+  value: number;
+  notation: ClueNotation;
+  contiguityEnabled: boolean;
+  /** Gap position where this segment's label renders, or null if no preceding gap. */
+  labelPosition: HexCoord | null;
+}
+
 export interface LineClue {
   axis: LineAxis;
   startCoord: HexCoord;
@@ -11,6 +20,7 @@ export interface LineClue {
   value: number;
   notation: ClueNotation;
   contiguityEnabled: boolean;
+  segments: LineSegment[];
 }
 
 interface GridBounds {
@@ -87,22 +97,68 @@ export function computeLineClue(
   const bounds = computeBounds(cellMap);
   const cells: HexCoord[] = [];
   const labelPositions: HexCoord[] = [];
+
+  // Walk the line, collecting cells and gaps; also build segments in one pass.
+  const segments: LineSegment[] = [];
+  let currentSegmentCells: HexCoord[] = [];
+  let currentSegmentLabelPosition: HexCoord | null = null;
+  let pendingGap: HexCoord | null = null;
+
   let current = start;
   while (isWithinBounds(current, bounds)) {
     if (cellMap.has(coordKey(current))) {
       cells.push(current);
+      if (pendingGap !== null) {
+        // Close the previous segment (if it has cells) and start a new one.
+        if (currentSegmentCells.length > 0) {
+          const segFilledFlags = currentSegmentCells.map((c) => {
+            const cell = cellMap.get(coordKey(c));
+            return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
+          });
+          const segValue = segFilledFlags.filter(Boolean).length;
+          segments.push({
+            cells: currentSegmentCells,
+            value: segValue,
+            notation: computeLineContiguity(segFilledFlags, segValue),
+            contiguityEnabled: true,
+            labelPosition: currentSegmentLabelPosition,
+          });
+        }
+        currentSegmentCells = [];
+        currentSegmentLabelPosition = pendingGap;
+        pendingGap = null;
+      }
+      currentSegmentCells.push(current);
     } else {
       labelPositions.push(current);
+      pendingGap = current;
     }
     current = stepInDirection(current, axis);
   }
+
+  // Close the final segment.
+  if (currentSegmentCells.length > 0) {
+    const segFilledFlags = currentSegmentCells.map((c) => {
+      const cell = cellMap.get(coordKey(c));
+      return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
+    });
+    const segValue = segFilledFlags.filter(Boolean).length;
+    segments.push({
+      cells: currentSegmentCells,
+      value: segValue,
+      notation: computeLineContiguity(segFilledFlags, segValue),
+      contiguityEnabled: true,
+      labelPosition: currentSegmentLabelPosition,
+    });
+  }
+
   const filledFlags = cells.map((c) => {
     const cell = cellMap.get(coordKey(c));
     return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
   });
   const value = filledFlags.filter(Boolean).length;
   const notation = computeLineContiguity(filledFlags, value);
-  return { axis, startCoord: cells[0], cells, labelPositions, value, notation, contiguityEnabled: true };
+  return { axis, startCoord: cells[0], cells, labelPositions, value, notation, contiguityEnabled: true, segments };
 }
 
 /**

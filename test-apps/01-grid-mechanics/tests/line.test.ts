@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { coordKey, type HexCoord } from '../src/model/hex-coord';
-import { CellGroundTruth, createCell, type HexCell } from '../src/model/hex-cell';
+import { CellGroundTruth, ClueNotation, createCell, type HexCell } from '../src/model/hex-cell';
 import {
   computeLineClue,
   computeAllLineClues,
@@ -390,5 +390,82 @@ describe('computeAllLineClues', () => {
     const cellMap = new Map<string, HexCell>();
     const clues = computeAllLineClues(cellMap);
     expect(clues).toEqual([]);
+  });
+});
+
+describe('LineClue segments', () => {
+  it('produces one segment when line has no gaps', () => {
+    // Vertical line with all cells present: (2,0), (2,1), (2,2)
+    const cellMap = buildCellMap([
+      [2, 0, F],
+      [2, 1, F],
+      [2, 2, F],
+    ]);
+    const clue = computeLineClue({ col: 2, row: 0 }, 'vertical', cellMap);
+    expect(clue.segments).toHaveLength(1);
+    expect(clue.segments[0].cells.map(coordKey)).toEqual(['2,0', '2,1', '2,2']);
+  });
+
+  it('splits into two segments when there is one gap', () => {
+    // Vertical line with a missing cell in the middle: (2,0), (2,1), gap at (2,2), (2,3)
+    const cellMap = buildCellMap([
+      [2, 0, F],
+      [2, 1, F],
+      // (2,2) missing — gap
+      [2, 3, F],
+    ]);
+    const clue = computeLineClue({ col: 2, row: 0 }, 'vertical', cellMap);
+    expect(clue.segments).toHaveLength(2);
+    expect(clue.segments[0].cells.map(coordKey)).toEqual(['2,0', '2,1']);
+    expect(clue.segments[1].cells.map(coordKey)).toEqual(['2,3']);
+  });
+
+  it('computes contiguity per segment independently', () => {
+    // Two segments:
+    //   Segment 0: (2,0) FILLED, (2,1) EMPTY, (2,2) FILLED — DISCONTIGUOUS
+    //   Segment 1: (2,4) FILLED, (2,5) FILLED — CONTIGUOUS
+    // Gap at (2,3) separates the segments
+    const cellMap = buildCellMap([
+      [2, 0, F],
+      [2, 1, E],
+      [2, 2, F],
+      // (2,3) missing — gap
+      [2, 4, F],
+      [2, 5, F],
+    ]);
+    const clue = computeLineClue({ col: 2, row: 0 }, 'vertical', cellMap);
+    expect(clue.segments).toHaveLength(2);
+    // Segment 0: F, E, F → 2 filled, discontiguous
+    expect(clue.segments[0].notation).toBe(ClueNotation.DISCONTIGUOUS);
+    expect(clue.segments[0].value).toBe(2);
+    // Segment 1: F, F → 2 filled, contiguous
+    expect(clue.segments[1].notation).toBe(ClueNotation.CONTIGUOUS);
+    expect(clue.segments[1].value).toBe(2);
+  });
+
+  it('each segment has contiguityEnabled defaulting to true', () => {
+    const cellMap = buildCellMap([
+      [2, 0, F],
+      [2, 1, F],
+      // (2,2) missing
+      [2, 3, F],
+    ]);
+    const clue = computeLineClue({ col: 2, row: 0 }, 'vertical', cellMap);
+    for (const seg of clue.segments) {
+      expect(seg.contiguityEnabled).toBe(true);
+    }
+  });
+
+  it('first segment has labelPosition null, subsequent segments have the gap position', () => {
+    // Gap at (2,2): segments are [(2,0),(2,1)] and [(2,3)]
+    const cellMap = buildCellMap([
+      [2, 0, F],
+      [2, 1, F],
+      // (2,2) missing — gap
+      [2, 3, F],
+    ]);
+    const clue = computeLineClue({ col: 2, row: 0 }, 'vertical', cellMap);
+    expect(clue.segments[0].labelPosition).toBeNull();
+    expect(clue.segments[1].labelPosition).toEqual({ col: 2, row: 2 });
   });
 });
