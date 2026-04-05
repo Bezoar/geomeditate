@@ -35,7 +35,7 @@ function updateHud(): void {
 
 function render(): void {
   renderGrid(currentGrid, svgEl, handleCellClick, clueOptions.selectionEnabled);
-  renderClues(currentGrid, svgEl, clueOptions, segmentStates, hiddenFlowerClues, dimmedFlowerClues, flowerGuideClues, handleLineClueInteraction);
+  renderClues(currentGrid, svgEl, clueOptions, segmentStates, hiddenFlowerClues, dimmedFlowerClues, flowerGuideClues, handleSegmentInteraction);
   updateHud();
 }
 
@@ -87,8 +87,8 @@ function handleCellClick(coord: HexCoord, interaction: CellInteraction): void {
   render();
 }
 
-function handleLineClueInteraction(key: string, newState: SegmentState): void {
-  segmentStates.set(key, newState);
+function handleSegmentInteraction(segId: string, newState: SegmentState): void {
+  segmentStates.set(segId, newState);
   render();
 }
 
