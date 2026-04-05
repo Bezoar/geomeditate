@@ -93,12 +93,16 @@ export function computeAllSegmentsAndGroups(
       segments.set(edgeSegId, edgeSegment);
       segIds.push(edgeSegId);
 
-      // --- Gap segments: one per gap position, covers cells from after the gap to the end ---
+      // --- Gap segments: one per gap, covers cells from gap toward the "far end" ---
+      // For vertical/right-facing: far end is last in allCells (suffix after gap)
+      // For left-facing: far end is first in allCells (prefix before gap)
       for (const gapPos of gapPositions) {
-        const cellsAfterGap = getCellsAfterPosition(gapPos, allCells, axis, bounds);
-        if (cellsAfterGap.length === 0) continue; // trailing gap with no cells after it
+        const gapCells = axis === 'left-facing'
+          ? getCellsBeforePosition(gapPos, allCells, axis, bounds)
+          : getCellsAfterPosition(gapPos, allCells, axis, bounds);
+        if (gapCells.length === 0) continue; // gap at the far end with no cells beyond it
         const gapSegId = segmentId(axis, gapPos);
-        const gapFilledFlags = cellsAfterGap.map((c) => {
+        const gapFilledFlags = gapCells.map((c) => {
           const cell = cellMap.get(coordKey(c));
           return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
         });
@@ -109,7 +113,7 @@ export function computeAllSegmentsAndGroups(
           lineGroupId: groupId,
           axis,
           cluePosition: gapPos,
-          cells: cellsAfterGap,
+          cells: gapCells,
           value: gapValue,
           notation: gapNotation,
           isEdgeClue: false,
@@ -154,6 +158,26 @@ function getCellsAfterPosition(
     cur = stepInDirection(cur, axis);
   }
   return allCells.filter((c) => afterKeys.has(coordKey(c)));
+}
+
+/**
+ * Return the subset of allCells that come BEFORE the given position along the axis.
+ * "Before" means: the cell's position is reachable by walking backward (predecessor) from beforePos.
+ * Used for left-facing diagonals where the "far end" is the start of allCells.
+ */
+function getCellsBeforePosition(
+  beforePos: HexCoord,
+  allCells: HexCoord[],
+  axis: LineAxis,
+  bounds: GridBounds,
+): HexCoord[] {
+  const beforeKeys = new Set<string>();
+  let cur = predecessor(beforePos, axis);
+  while (isWithinBounds(cur, bounds)) {
+    beforeKeys.add(coordKey(cur));
+    cur = predecessor(cur, axis);
+  }
+  return allCells.filter((c) => beforeKeys.has(coordKey(c)));
 }
 
 // ---
