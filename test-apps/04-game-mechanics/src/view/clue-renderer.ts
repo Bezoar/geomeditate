@@ -360,19 +360,14 @@ export function renderClues(
       labelX = anchor.x + dx;
       labelY = anchor.y + dy;
     } else {
-      // Gap label: offset from the adjacent cell
+      // Gap label: offset from the cell nearest the gap
       if (seg.axis === 'left-facing') {
-        // For left-facing, the gap is "above" (in reading direction) the segment's cells.
-        // The adjacent cell is the cell just before the gap in the LineGroup —
-        // i.e., the last cell before the gap in the full line.
-        const group = grid.lineGroups.get(seg.lineGroupId)!;
-        // Find the cell index just before seg.cells[0] in allCells
-        const firstCellKey = coordKey(seg.cells[0]);
-        const idx = group.allCells.findIndex(c => coordKey(c) === firstCellKey);
-        const adjacentCell = idx > 0 ? group.allCells[idx - 1] : seg.cells[0];
-        const adjPixel = toPixel(adjacentCell, RADIUS);
-        labelX = adjPixel.x + dx;
-        labelY = adjPixel.y + dy;
+        // For left-facing, seg.cells are ordered lower-left to upper-right (prefix before gap).
+        // The cell nearest the gap is the LAST cell in seg.cells.
+        const nearestCell = seg.cells[seg.cells.length - 1];
+        const nearestPixel = toPixel(nearestCell, RADIUS);
+        labelX = nearestPixel.x + dx;
+        labelY = nearestPixel.y + dy;
       } else {
         // For vertical/right-facing, offset from the first cell after the gap
         const firstAfter = toPixel(seg.cells[0], RADIUS);
