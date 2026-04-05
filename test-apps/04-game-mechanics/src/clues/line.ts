@@ -95,8 +95,9 @@ export function computeAllSegmentsAndGroups(
 
       // --- Gap segments: one per gap position, covers cells from after the gap to the end ---
       for (const gapPos of gapPositions) {
-        const gapSegId = segmentId(axis, gapPos);
         const cellsAfterGap = getCellsAfterPosition(gapPos, allCells, axis, bounds);
+        if (cellsAfterGap.length === 0) continue; // trailing gap with no cells after it
+        const gapSegId = segmentId(axis, gapPos);
         const gapFilledFlags = cellsAfterGap.map((c) => {
           const cell = cellMap.get(coordKey(c));
           return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
