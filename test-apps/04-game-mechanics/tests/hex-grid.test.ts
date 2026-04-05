@@ -9,7 +9,7 @@ import {
   ClueNotation,
 } from '../src/model/hex-cell';
 import { HexGrid } from '../src/model/hex-grid';
-import type { TestGridConfig, LineClue } from '../src/model/hex-grid';
+import type { TestGridConfig, Segment } from '../src/model/hex-grid';
 
 // --- T019: HexGrid construction from TestGridConfig ---
 
@@ -296,19 +296,19 @@ describe('HexGrid.computeAllClues()', () => {
     expect(cell11.flowerClueValue).toBeNull();
   });
 
-  it('populates lineClues array', () => {
+  it('populates segments map', () => {
     const grid = new HexGrid(clueConfig);
     grid.computeAllClues();
 
-    expect(Array.isArray(grid.lineClues)).toBe(true);
-    expect(grid.lineClues.length).toBeGreaterThan(0);
+    expect(grid.segments instanceof Map).toBe(true);
+    expect(grid.segments.size).toBeGreaterThan(0);
   });
 
-  it('lineClues cover all three axes', () => {
+  it('segments cover all three axes', () => {
     const grid = new HexGrid(clueConfig);
     grid.computeAllClues();
 
-    const axes = new Set(grid.lineClues.map((lc: LineClue) => lc.axis));
+    const axes = new Set([...grid.segments.values()].map((s: Segment) => s.axis));
     expect(axes.has('vertical')).toBe(true);
     expect(axes.has('left-facing')).toBe(true);
     expect(axes.has('right-facing')).toBe(true);
@@ -322,46 +322,48 @@ describe('HexGrid.computeAllClues()', () => {
     // Col 0: (0,0)=FILLED, (0,1)=EMPTY, (0,2)=EMPTY → value=1
     // Col 1: (1,0)=FILLED, (1,1)=EMPTY, (1,2)=EMPTY → value=1
     // Col 2: (2,0)=EMPTY, (2,1)=EMPTY, (2,2)=FILLED → value=1
-    const verticalClues = grid.lineClues.filter(
-      (lc: LineClue) => lc.axis === 'vertical',
+    const verticalEdgeSegments = [...grid.segments.values()].filter(
+      (s: Segment) => s.axis === 'vertical' && s.isEdgeClue,
     );
-    for (const lc of verticalClues) {
+    for (const s of verticalEdgeSegments) {
       // All vertical lines in this grid have exactly 1 filled cell
-      expect(lc.value).toBe(1);
+      expect(s.value).toBe(1);
     }
   });
 
-  it('line clue cells array contains coords along the line', () => {
+  it('segment cells array contains coords along the line', () => {
     const grid = new HexGrid(clueConfig);
     grid.computeAllClues();
 
-    for (const lc of grid.lineClues) {
-      expect(lc.cells.length).toBeGreaterThan(0);
-      // Each cell in the line should exist in the grid
-      for (const c of lc.cells) {
+    for (const s of grid.segments.values()) {
+      expect(s.cells.length).toBeGreaterThan(0);
+      // Each cell in the segment should exist in the grid
+      for (const c of s.cells) {
         expect(grid.cells.has(coordKey(c))).toBe(true);
       }
     }
   });
 
-  it('line clue value equals actual FILLED count along the line', () => {
+  it('segment value equals actual FILLED count along the segment', () => {
     const grid = new HexGrid(clueConfig);
     grid.computeAllClues();
 
-    for (const lc of grid.lineClues) {
-      const actualFilled = lc.cells.filter(
+    for (const s of grid.segments.values()) {
+      const actualFilled = s.cells.filter(
         (c: HexCoord) => grid.cells.get(coordKey(c))!.groundTruth === CellGroundTruth.FILLED,
       ).length;
-      expect(lc.value).toBe(actualFilled);
+      expect(s.value).toBe(actualFilled);
     }
   });
 
-  it('line clue startCoord is the first cell in the line', () => {
+  it('edge segment cells[0] matches the lineGroup startCoord', () => {
     const grid = new HexGrid(clueConfig);
     grid.computeAllClues();
 
-    for (const lc of grid.lineClues) {
-      expect(coordKey(lc.startCoord)).toBe(coordKey(lc.cells[0]));
+    for (const s of grid.segments.values()) {
+      if (!s.isEdgeClue) continue;
+      const group = grid.lineGroups.get(s.lineGroupId)!;
+      expect(coordKey(s.cells[0])).toBe(coordKey(group.startCoord));
     }
   });
 });
@@ -396,12 +398,12 @@ describe('HexGrid.computeAllClues() — all-empty grid', () => {
     }
   });
 
-  it('all line clue values are 0 when no cells are FILLED', () => {
+  it('all segment values are 0 when no cells are FILLED', () => {
     const grid = new HexGrid(allEmptyConfig);
     grid.computeAllClues();
 
-    for (const lc of grid.lineClues) {
-      expect(lc.value).toBe(0);
+    for (const s of grid.segments.values()) {
+      expect(s.value).toBe(0);
     }
   });
 
@@ -619,21 +621,21 @@ describe('HexGrid.toggleGroundTruth()', () => {
     expect(flowerAfter).toBe(flowerBefore - 1);
   });
 
-  it('recomputes line clues after toggle', () => {
+  it('recomputes segments after toggle', () => {
     const grid = new HexGrid(interactionConfig);
     grid.computeAllClues();
 
-    // Get line clue values before toggle
-    const verticalCol0Before = grid.lineClues.find(
-      lc => lc.axis === 'vertical' && lc.startCoord.col === 0,
+    // Get the edge segment for the vertical line starting at col 0 before toggle
+    const verticalCol0Before = [...grid.segments.values()].find(
+      (s: Segment) => s.axis === 'vertical' && s.isEdgeClue && s.cells[0]?.col === 0,
     );
     const valueBefore = verticalCol0Before?.value ?? 0;
 
     // Toggle (0,0) from FILLED to EMPTY
     grid.toggleGroundTruth({ col: 0, row: 0 });
 
-    const verticalCol0After = grid.lineClues.find(
-      lc => lc.axis === 'vertical' && lc.startCoord.col === 0,
+    const verticalCol0After = [...grid.segments.values()].find(
+      (s: Segment) => s.axis === 'vertical' && s.isEdgeClue && s.cells[0]?.col === 0,
     );
     expect(verticalCol0After!.value).toBe(valueBefore - 1);
   });

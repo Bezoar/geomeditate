@@ -13,9 +13,9 @@ import {
 } from './hex-cell';
 import { computeNeighborClue, computeContiguity } from '../clues/neighbor';
 import { computeFlowerClue } from '../clues/flower';
-import { computeAllLineClues, type LineClue } from '../clues/line';
+import { computeAllSegmentsAndGroups, type Segment, type LineGroup } from '../clues/line';
 
-export type { LineClue };
+export type { Segment, LineGroup };
 
 export interface TestGridConfig {
   name: string;
@@ -30,14 +30,16 @@ export class HexGrid {
   readonly width: number;
   readonly height: number;
   readonly cells: Map<string, HexCell>;
-  lineClues: LineClue[];
+  segments: Map<string, Segment>;
+  lineGroups: Map<string, LineGroup>;
   remainingCount: number;
   mistakeCount: number;
 
   constructor(config: TestGridConfig) {
     this.width = config.width;
     this.height = config.height;
-    this.lineClues = [];
+    this.segments = new Map();
+    this.lineGroups = new Map();
     this.remainingCount = 0;
     this.mistakeCount = 0;
 
@@ -191,7 +193,9 @@ export class HexGrid {
     }
 
     // Recompute all line clues
-    this.lineClues = computeAllLineClues(this.cells);
+    const result = computeAllSegmentsAndGroups(this.cells);
+    this.segments = result.segments;
+    this.lineGroups = result.lineGroups;
   }
 
   private recomputeCellClue(coord: HexCoord): void {
@@ -238,6 +242,8 @@ export class HexGrid {
       }
     }
 
-    this.lineClues = computeAllLineClues(this.cells);
+    const result = computeAllSegmentsAndGroups(this.cells);
+    this.segments = result.segments;
+    this.lineGroups = result.lineGroups;
   }
 }
