@@ -7,7 +7,9 @@ import {
   deduceFromNeighborClue,
   deduceFromFlowerClue,
   deduceFromLineClue,
+  deduceFromLineSegment,
   deduceFromGlobalRemaining,
+  lineSegClueId,
 } from './deductions';
 
 export type SolveTier = 'simple' | 'advanced';
@@ -44,6 +46,21 @@ export function solve(
       );
       if (lineClue !== undefined) {
         all.push(...deduceFromLineClue(lineClue, grid.cells));
+      }
+    } else if (parsed.type === 'lineseg') {
+      const lineClue = grid.lineClues.find(
+        (lc) =>
+          lc.axis === parsed.axis &&
+          coordKey(lc.startCoord) === coordKey(parsed.coord),
+      );
+      if (lineClue !== undefined && parsed.segIndex < lineClue.segments.length) {
+        all.push(...deduceFromLineSegment(
+          lineClue.segments[parsed.segIndex],
+          parsed.axis,
+          parsed.coord,
+          parsed.segIndex,
+          grid.cells,
+        ));
       }
     } else if (parsed.type === 'global' && tier === 'advanced') {
       all.push(...deduceFromGlobalRemaining(grid.remainingCount, grid.cells));

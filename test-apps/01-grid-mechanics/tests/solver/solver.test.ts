@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { HexGrid } from '../../src/model/hex-grid';
 import type { TestGridConfig } from '../../src/model/hex-grid';
 import { coordKey } from '../../src/model/hex-coord';
-import { neighborClueId, flowerClueId, lineClueId, GLOBAL_REMAINING_ID } from '../../src/solver/deductions';
+import { neighborClueId, flowerClueId, lineClueId, lineSegClueId, GLOBAL_REMAINING_ID } from '../../src/solver/deductions';
 import { solve } from '../../src/solver/solver';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -235,5 +235,88 @@ describe('solve', () => {
 
     // No covered neighbors → nothing to deduce
     expect(result).toEqual([]);
+  });
+
+  /**
+   * Extra: Handles lineseg clue type.
+   *
+   * Grid: 1x4 — (0,0) and (0,3) FILLED, (0,1) MISSING (gap creates segments).
+   * The vertical line clue should have at least 2 segments.
+   * Activating segment 0 (which contains (0,0)) should produce deductions
+   * or at minimum not throw.
+   */
+  it('handles lineseg clue type', () => {
+    const config: TestGridConfig = {
+      name: 'seg-test',
+      description: 'test line segments',
+      width: 1,
+      height: 4,
+      filledCoords: [{ col: 0, row: 0 }, { col: 0, row: 3 }],
+      missingCoords: [{ col: 0, row: 1 }],
+    };
+    const grid = new HexGrid(config);
+    grid.computeAllClues();
+    grid.coverAll();
+
+    // Find the vertical line clue
+    const vertLine = grid.lineClues.find((lc) => lc.axis === 'vertical');
+    expect(vertLine).toBeDefined();
+    expect(vertLine!.segments.length).toBeGreaterThan(1);
+
+    // Activate segment 0
+    const segId = lineSegClueId('vertical', vertLine!.startCoord, 0);
+    const deductions = solve(grid, new Set([segId]), 'simple');
+
+    // Should return an array without throwing
+    expect(Array.isArray(deductions)).toBe(true);
+  });
+
+  /**
+   * Extra: lineseg clue with out-of-bounds segIndex produces no deductions.
+   */
+  it('ignores lineseg clue with out-of-bounds segIndex', () => {
+    const config: TestGridConfig = {
+      name: 'seg-oob',
+      description: 'test out-of-bounds segment index',
+      width: 1,
+      height: 3,
+      filledCoords: [{ col: 0, row: 1 }],
+      missingCoords: [],
+    };
+    const grid = new HexGrid(config);
+    grid.computeAllClues();
+    grid.coverAll();
+
+    const vertLine = grid.lineClues.find((lc) => lc.axis === 'vertical');
+    expect(vertLine).toBeDefined();
+
+    // Use a segment index way beyond the actual segment count
+    const badSegId = lineSegClueId('vertical', vertLine!.startCoord, 999);
+    const deductions = solve(grid, new Set([badSegId]), 'simple');
+
+    expect(deductions).toEqual([]);
+  });
+
+  /**
+   * Extra: lineseg clue whose line clue is not found produces no deductions.
+   */
+  it('ignores lineseg clue when no matching line clue is found', () => {
+    const config: TestGridConfig = {
+      name: 'seg-nomatch',
+      description: 'test lineseg with mismatched axis/coord',
+      width: 1,
+      height: 3,
+      filledCoords: [{ col: 0, row: 1 }],
+      missingCoords: [],
+    };
+    const grid = new HexGrid(config);
+    grid.computeAllClues();
+    grid.coverAll();
+
+    // Use a coord that doesn't correspond to any line start
+    const badSegId = lineSegClueId('vertical', { col: 99, row: 99 }, 0);
+    const deductions = solve(grid, new Set([badSegId]), 'simple');
+
+    expect(deductions).toEqual([]);
   });
 });

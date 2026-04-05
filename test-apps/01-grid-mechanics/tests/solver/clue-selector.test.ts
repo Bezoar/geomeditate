@@ -130,6 +130,57 @@ describe('allClueIds', () => {
     expect(ids.has(GLOBAL_REMAINING_ID)).toBe(false);
   });
 
+  /**
+   * T_seg: Returns lineseg clue IDs when the grid has line segments.
+   *
+   * A 1x4 grid with (0,0) and (0,3) filled and (0,1) missing creates a gap
+   * in the vertical line, producing multiple segments.
+   */
+  it('includes line segment clue IDs', () => {
+    const config: TestGridConfig = {
+      name: 'seg-ids',
+      description: 'test segment IDs',
+      width: 1,
+      height: 4,
+      filledCoords: [{ col: 0, row: 0 }],
+      missingCoords: [{ col: 0, row: 1 }],
+    };
+    const grid = new HexGrid(config);
+    grid.computeAllClues();
+    grid.coverAll();
+
+    const ids = allClueIds(grid);
+    const segIds = [...ids].filter((id) => id.startsWith('lineseg:'));
+    expect(segIds.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * T_seg2: allClueIds includes one lineseg ID per segment per line clue.
+   */
+  it('includes exactly one lineseg ID per segment per line', () => {
+    const config: TestGridConfig = {
+      name: 'seg-count',
+      description: 'count segment IDs',
+      width: 1,
+      height: 4,
+      filledCoords: [{ col: 0, row: 0 }],
+      missingCoords: [{ col: 0, row: 1 }],
+    };
+    const grid = new HexGrid(config);
+    grid.computeAllClues();
+    grid.coverAll();
+
+    const ids = allClueIds(grid);
+    const segIds = [...ids].filter((id) => id.startsWith('lineseg:'));
+
+    // Count expected segments across all line clues
+    let expectedSegCount = 0;
+    for (const lc of grid.lineClues) {
+      expectedSegCount += lc.segments.length;
+    }
+    expect(segIds.length).toBe(expectedSegCount);
+  });
+
   it('returns an empty set for a grid with no cells', () => {
     // All cells missing → no clues
     const config: TestGridConfig = {

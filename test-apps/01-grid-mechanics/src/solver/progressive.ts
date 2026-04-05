@@ -210,10 +210,14 @@ export function solveProgressively(
       const parsed = parseClueId(bestClue);
       const explanation = parsed.type === 'line'
         ? `Solver activated ${parsed.axis} line clue at (${coordKey(parsed.coord)})`
+        : parsed.type === 'lineseg'
+        ? `Solver activated ${parsed.axis} segment ${parsed.segIndex} at (${coordKey(parsed.coord)})`
         : `Solver activated global remaining count`;
       steps.push({
         deductions: [{
-          coord: parsed.type === 'line' ? parsed.coord : { col: 0, row: 0 },
+          coord: parsed.type === 'line' ? parsed.coord
+            : parsed.type === 'lineseg' ? parsed.coord
+            : { col: 0, row: 0 },
           result: 'empty',
           reason: { clueIds: [bestClue], explanation },
         }],

@@ -5,6 +5,7 @@ import {
   neighborClueId,
   flowerClueId,
   lineClueId,
+  lineSegClueId,
   GLOBAL_REMAINING_ID,
 } from './deductions';
 import type { SolveReplay } from './verifier';
@@ -36,6 +37,9 @@ export function allClueIds(grid: HexGrid): Set<ClueId> {
 
   for (const lc of grid.lineClues) {
     ids.add(lineClueId(lc.axis, lc.startCoord));
+    for (let i = 0; i < lc.segments.length; i++) {
+      ids.add(lineSegClueId(lc.axis, lc.startCoord, i));
+    }
   }
 
   return ids;
@@ -85,7 +89,7 @@ export function selectClues(grid: HexGrid, difficulty: 'easy' | 'hard'): ClueSel
     visibleClues = new Set(required);
     for (const clueId of candidates) {
       if (required.has(clueId)) continue;
-      if (clueId.startsWith('line:')) {
+      if (clueId.startsWith('line:') || clueId.startsWith('lineseg:')) {
         visibleClues.add(clueId);
       }
     }
