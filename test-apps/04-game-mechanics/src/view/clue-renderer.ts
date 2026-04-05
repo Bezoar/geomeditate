@@ -1,7 +1,6 @@
 import type { HexGrid } from '../model/hex-grid';
-import { predecessor } from '../clues/line';
-import type { LineClue, Segment } from '../clues/line';
-import { CellGroundTruth, CellVisualState, ClueNotation } from '../model/hex-cell';
+import type { Segment } from '../clues/line';
+import { CellVisualState } from '../model/hex-cell';
 import { coordKey, toPixel, stepInDirection, neighbors, radius2Positions } from '../model/hex-coord';
 import type { HexCoord, LineAxis } from '../model/hex-coord';
 import { formatNeighborClue } from '../clues/neighbor';
@@ -12,17 +11,6 @@ import {
   toggleDimmed,
   toggleInvisible,
 } from './segment-state';
-
-function computePartialContiguity(filledFlags: boolean[], count: number): ClueNotation {
-  if (count <= 1) return ClueNotation.PLAIN;
-  let runs = 0;
-  let inRun = false;
-  for (const filled of filledFlags) {
-    if (filled && !inRun) { runs++; inRun = true; }
-    else if (!filled) { inRun = false; }
-  }
-  return runs === 1 ? ClueNotation.CONTIGUOUS : ClueNotation.DISCONTIGUOUS;
-}
 
 const RADIUS = 24;
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -124,26 +112,23 @@ function clueHitTriangle(cx: number, cy: number, axis: LineAxis): string {
 }
 
 /**
- * Render a guide line extending from the edge of the first cell
- * to the edge of the last cell along the line clue's axis.
+ * Render a guide line for a single segment, covering only that segment's cells.
+ * Opacity is set on the parent <g> element to prevent stacking.
  */
-function renderGuideLine(
-  clue: LineClue,
-  svgContainer: SVGElement,
+function renderSegmentGuideLine(
+  segment: Segment,
+  container: SVGElement,
 ): void {
-  if (clue.cells.length === 0) return;
+  if (segment.cells.length === 0) return;
 
-  const first = toPixel(clue.cells[0], RADIUS);
-  const last = toPixel(clue.cells[clue.cells.length - 1], RADIUS);
-
-  // Apothem: distance from center to edge midpoint
+  const first = toPixel(segment.cells[0], RADIUS);
+  const last = toPixel(segment.cells[segment.cells.length - 1], RADIUS);
   const apothem = RADIUS * Math.sqrt(3) / 2;
 
   let x1: number, y1: number, x2: number, y2: number;
 
-  if (clue.cells.length === 1) {
-    // Single cell: compute direction from stepping to the next cell along the axis
-    const nextCoord = stepInDirection(clue.cells[0], clue.axis);
+  if (segment.cells.length === 1) {
+    const nextCoord = stepInDirection(segment.cells[0], segment.axis);
     const next = toPixel(nextCoord, RADIUS);
     const ddx = next.x - first.x;
     const ddy = next.y - first.y;
@@ -155,14 +140,11 @@ function renderGuideLine(
     x2 = first.x + dux * apothem;
     y2 = first.y + duy * apothem;
   } else {
-    // Direction vector from first to last cell
     const dx = last.x - first.x;
     const dy = last.y - first.y;
     const len = Math.sqrt(dx * dx + dy * dy);
     const ux = dx / len;
     const uy = dy / len;
-
-    // Extend from first cell edge to last cell edge
     x1 = first.x - ux * apothem;
     y1 = first.y - uy * apothem;
     x2 = last.x + ux * apothem;
@@ -175,14 +157,14 @@ function renderGuideLine(
   line.setAttribute('x2', String(x2));
   line.setAttribute('y2', String(y2));
   line.setAttribute('stroke', '#ffffff');
-  line.setAttribute('stroke-opacity', '0.3');
   line.setAttribute('stroke-width', '2');
   line.setAttribute('stroke-linecap', 'round');
-  svgContainer.appendChild(line);
+  // No stroke-opacity here — opacity is set on the parent <g> element
+  container.appendChild(line);
 }
 
-export interface LineClueInteraction {
-  (clueKey: string, newState: SegmentState): void;
+export interface SegmentInteraction {
+  (segmentId: string, newState: SegmentState): void;
 }
 
 export interface ClueRenderOptions {
@@ -282,11 +264,11 @@ export function renderClues(
   grid: HexGrid,
   svgContainer: SVGElement,
   options: ClueRenderOptions,
-  lineClueStates: Map<string, SegmentState>,
+  segmentStates: Map<string, SegmentState>,
   hiddenFlowerClues: Set<string>,
   dimmedFlowerClues: Set<string>,
   flowerGuideClues: Set<string>,
-  onLineClueInteraction?: LineClueInteraction,
+  onSegmentInteraction?: SegmentInteraction,
 ): void {
 
   // Render flower guide overlays (behind clue text)
@@ -330,122 +312,100 @@ export function renderClues(
     }
   }
 
-  // Render line clues with display state
+  // Render guide lines per-segment, grouped by LineGroup to prevent opacity stacking
+  const guideGroupElements = new Map<string, SVGGElement>();
+  for (const seg of grid.segments.values()) {
+    const state = getState(segmentStates, seg);
+    if (!state.activated || state.visibility !== 'visible-with-line') continue;
+
+    let gEl = guideGroupElements.get(seg.lineGroupId);
+    if (!gEl) {
+      gEl = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+      gEl.setAttribute('opacity', '0.3');
+      svgContainer.appendChild(gEl);
+      guideGroupElements.set(seg.lineGroupId, gEl);
+    }
+    renderSegmentGuideLine(seg, gEl);
+  }
+
+  // Render segment labels and hit areas
   const renderedLabelPositions: Array<{ x: number; y: number }> = [];
   const LABEL_MIN_DIST = RADIUS * 0.6;
 
-  // TODO(Task 8): replace grid.lineClues iteration with grid.segments
-  for (const clue of ((grid as unknown as { lineClues: LineClue[] }).lineClues ?? [])) {
-    const state = getState(lineClueStates, clue as unknown as Segment);
-    const key = `${clue.axis}:${coordKey(clue.startCoord)}`;
-    const { dx, dy, rotation } = lineClueOffset(clue.axis);
+  // Sort: edge clues first (higher priority for collision avoidance)
+  const sortedSegments = [...grid.segments.values()].sort((a, b) =>
+    (a.isEdgeClue ? 0 : 1) - (b.isEdgeClue ? 0 : 1),
+  );
 
-    // Render guide line (behind text) if visible-with-line
-    if (state.visibility === 'visible-with-line') {
-      renderGuideLine(clue, svgContainer);
-    }
+  for (const seg of sortedSegments) {
+    const state = getState(segmentStates, seg);
+    if (!state.activated) continue;
 
-    const lineLabel = formatNeighborClue(clue.value, clue.notation, clue.contiguityEnabled);
+    const { dx, dy, rotation } = lineClueOffset(seg.axis);
+    const label = formatNeighborClue(seg.value, seg.notation, seg.contiguityEnabled);
 
-    // --- Edge label (original positioning: anchor + offset) ---
-    const anchorCoord =
-      clue.axis === 'left-facing'
-        ? clue.cells[clue.cells.length - 1]
-        : clue.startCoord;
-    const anchor = toPixel(anchorCoord, RADIUS);
-    const edgeLx = anchor.x + dx;
-    const edgeLy = anchor.y + dy;
+    // Hit area position: at the clue position (gap or edge predecessor)
+    const hitPos = toPixel(seg.cluePosition, RADIUS);
 
-    const edgeCoord =
-      clue.axis === 'left-facing'
-        ? stepInDirection(clue.cells[clue.cells.length - 1], 'left-facing')
-        : predecessor(clue.startCoord, clue.axis);
-    const edgeHit = toPixel(edgeCoord, RADIUS);
+    // Label position: offset from the adjacent cell toward the clue position
+    let labelX: number, labelY: number;
 
-    if (!overlapsCell(edgeLx, edgeLy, grid)) {
-      const tooClose = renderedLabelPositions.some(p => {
-        const px = edgeLx - p.x;
-        const py = edgeLy - p.y;
-        return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
-      });
-      if (!tooClose) {
-        renderedLabelPositions.push({ x: edgeLx, y: edgeLy });
-        renderLineLabel(edgeLx, edgeLy, edgeHit.x, edgeHit.y, lineLabel, rotation, state, clue.axis, key, svgContainer, options, onLineClueInteraction);
-      }
-    }
-
-    // --- Interior labels: missing cells adjacent to an active cell ---
-    // All labels face "downward": they describe cells going down/down-right/down-left.
-    // For vertical/descending: the next cell FORWARD is active; count forward to end.
-    // For ascending: the cell BELOW-LEFT (predecessor) is active; count backward to start.
-    for (const mp of clue.labelPositions) {
-      let adjacentKey: string;
-      let intLx: number, intLy: number;
-      let partialCells: HexCoord[];
-
-      if (clue.axis === 'left-facing') {
-        // Left-facing interior: label above cells going down-left
-        const pred = predecessor(mp, 'left-facing');
-        adjacentKey = coordKey(pred);
-        if (!grid.cells.has(adjacentKey)) continue;
-
-        // Offset upper-right from predecessor (standard ascending offset, toward missing cell)
-        const predPixel = toPixel(pred, RADIUS);
-        intLx = predPixel.x + dx;
-        intLy = predPixel.y + dy;
-
-        // Count from start of diagonal up to and including predecessor
-        const predIdx = clue.cells.findIndex((c: HexCoord) => coordKey(c) === adjacentKey);
-        partialCells = clue.cells.slice(0, predIdx + 1);
+    if (seg.isEdgeClue) {
+      // Edge label: offset from anchor cell
+      const anchorCoord =
+        seg.axis === 'left-facing'
+          ? seg.cells[seg.cells.length - 1]
+          : seg.cells[0];
+      const anchor = toPixel(anchorCoord, RADIUS);
+      labelX = anchor.x + dx;
+      labelY = anchor.y + dy;
+    } else {
+      // Gap label: offset from the adjacent cell
+      if (seg.axis === 'left-facing') {
+        // For left-facing, the gap is "above" (in reading direction) the segment's cells.
+        // The adjacent cell is the cell just before the gap in the LineGroup —
+        // i.e., the last cell before the gap in the full line.
+        const group = grid.lineGroups.get(seg.lineGroupId)!;
+        // Find the cell index just before seg.cells[0] in allCells
+        const firstCellKey = coordKey(seg.cells[0]);
+        const idx = group.allCells.findIndex(c => coordKey(c) === firstCellKey);
+        const adjacentCell = idx > 0 ? group.allCells[idx - 1] : seg.cells[0];
+        const adjPixel = toPixel(adjacentCell, RADIUS);
+        labelX = adjPixel.x + dx;
+        labelY = adjPixel.y + dy;
       } else {
-        // Vertical/descending interior: label above cells going down/down-right
-        const nextForward = stepInDirection(mp, clue.axis);
-        adjacentKey = coordKey(nextForward);
-        if (!grid.cells.has(adjacentKey)) continue;
-
-        // Standard offset from next cell (toward missing cell)
-        const nextAnchor = toPixel(nextForward, RADIUS);
-        intLx = nextAnchor.x + dx;
-        intLy = nextAnchor.y + dy;
-
-        // Count from next cell forward to end of diagonal
-        const nextIdx = clue.cells.findIndex((c: HexCoord) => coordKey(c) === adjacentKey);
-        partialCells = clue.cells.slice(nextIdx);
+        // For vertical/right-facing, offset from the first cell after the gap
+        const firstAfter = toPixel(seg.cells[0], RADIUS);
+        labelX = firstAfter.x + dx;
+        labelY = firstAfter.y + dy;
       }
-
-      const mc = toPixel(mp, RADIUS);
-
-      if (overlapsCell(intLx, intLy, grid)) continue;
-
-      const tooClose = renderedLabelPositions.some(p => {
-        const px = intLx - p.x;
-        const py = intLy - p.y;
-        return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
-      });
-      if (tooClose) continue;
-
-      const partialFilled = partialCells.map(c => {
-        const cell = grid.cells.get(coordKey(c));
-        return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
-      });
-      const partialValue = partialFilled.filter(Boolean).length;
-      const partialNotation = computePartialContiguity(partialFilled, partialValue);
-      const partialLabel = formatNeighborClue(partialValue, partialNotation, clue.contiguityEnabled);
-
-      renderedLabelPositions.push({ x: intLx, y: intLy });
-      renderLineLabel(intLx, intLy, mc.x, mc.y, partialLabel, rotation, state, clue.axis, key, svgContainer, options, onLineClueInteraction);
     }
+
+    if (overlapsCell(labelX, labelY, grid)) continue;
+
+    const tooClose = renderedLabelPositions.some(p => {
+      const px = labelX - p.x;
+      const py = labelY - p.y;
+      return px * px + py * py < LABEL_MIN_DIST * LABEL_MIN_DIST;
+    });
+    if (tooClose) continue;
+
+    renderedLabelPositions.push({ x: labelX, y: labelY });
+    renderSegmentLabel(
+      labelX, labelY, hitPos.x, hitPos.y, label, rotation,
+      state, seg.axis, seg.id, svgContainer, options, onSegmentInteraction,
+    );
   }
 }
 
-function renderLineLabel(
+function renderSegmentLabel(
   textX: number, textY: number,
   hitX: number, hitY: number,
   label: string, rotation: number,
   state: SegmentState, axis: LineAxis,
-  key: string, svgContainer: SVGElement,
+  segId: string, svgContainer: SVGElement,
   opts: ClueRenderOptions,
-  onLineClueInteraction?: LineClueInteraction,
+  onSegmentInteraction?: SegmentInteraction,
 ): void {
   if (state.visibility !== 'invisible') {
     const opacity = state.visibility === 'dimmed' ? DIMMED_OPACITY : undefined;
@@ -467,7 +427,6 @@ function renderLineLabel(
   hitArea.addEventListener('click', (e: MouseEvent) => {
     e.stopPropagation();
     if (opts.selectionEnabled) {
-      // Remove previous selection
       svgContainer.querySelectorAll('.clue-selection').forEach(el => el.remove());
       const sel = document.createElementNS(SVG_NS, 'polygon');
       sel.setAttribute('points', clueHitTriangle(hitX, hitY, axis));
@@ -479,11 +438,11 @@ function renderLineLabel(
       svgContainer.appendChild(sel);
       return;
     }
-    if (onLineClueInteraction) {
+    if (onSegmentInteraction) {
       if (e.metaKey) {
-        onLineClueInteraction(key, toggleInvisible(state));
+        onSegmentInteraction(segId, toggleInvisible(state));
       } else {
-        onLineClueInteraction(key, toggleGuideLine(state));
+        onSegmentInteraction(segId, toggleGuideLine(state));
       }
     }
   });
@@ -491,8 +450,8 @@ function renderLineLabel(
   hitArea.addEventListener('contextmenu', (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onLineClueInteraction) {
-      onLineClueInteraction(key, toggleDimmed(state));
+    if (onSegmentInteraction) {
+      onSegmentInteraction(segId, toggleDimmed(state));
     }
   });
 
