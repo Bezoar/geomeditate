@@ -2,6 +2,38 @@ import type { HexCoord, LineAxis } from '../model/hex-coord';
 import { coordKey, stepInDirection } from '../model/hex-coord';
 import { CellGroundTruth, ClueNotation, type HexCell } from '../model/hex-cell';
 
+// --- Segment / LineGroup types ---
+
+export interface Segment {
+  id: string;
+  lineGroupId: string;
+  axis: LineAxis;
+  cluePosition: HexCoord;
+  cells: HexCoord[];
+  value: number;
+  notation: ClueNotation;
+  isEdgeClue: boolean;
+  contiguityEnabled: boolean;
+}
+
+export interface LineGroup {
+  id: string;
+  axis: LineAxis;
+  allCells: HexCoord[];
+  gapPositions: HexCoord[];
+  segmentIds: string[];
+  startCoord: HexCoord;
+  endCoord: HexCoord;
+}
+
+export function segmentId(axis: LineAxis, cluePosition: HexCoord): string {
+  return `seg:${axis}:${coordKey(cluePosition)}`;
+}
+
+export function lineGroupId(axis: LineAxis, startCoord: HexCoord): string {
+  return `line:${axis}:${coordKey(startCoord)}`;
+}
+
 export interface LineClue {
   axis: LineAxis;
   startCoord: HexCoord;
