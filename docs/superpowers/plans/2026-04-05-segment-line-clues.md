@@ -4,7 +4,7 @@
 
 **Goal:** Fork 01-grid-mechanics as 04-game-mechanics and replace the flat LineClue model with a Segment + LineGroup two-tier model where segments are the primary game unit.
 
-**Architecture:** Walk grid lines to produce LineGroups (physical paths with gaps), derive independent Segments from each group (edge + one per gap). Segments own their cell lists (gaps excluded) so contiguity is correct by construction. Guide lines render per-LineGroup with non-stacking opacity.
+**Architecture:** Walk grid lines to produce LineGroups (physical paths with gaps), derive independent Segments from each group (edge + one per gap). Segments own their cell lists (gaps excluded) so contiguity is correct by construction. Guide lines render per-segment (covering only that segment's cells) with non-stacking opacity within a LineGroup.
 
 **Tech Stack:** TypeScript 5.x (strict mode), Vite 6.x, Vitest
 
@@ -1306,23 +1306,30 @@ function lineClueOffset(axis: LineAxis): { dx: number; dy: number; rotation: num
 }
 ```
 
-- [ ] **Step 4: Update renderGuideLine to use LineGroup**
+- [ ] **Step 4: Update renderGuideLine to render per-segment**
+
+Guide lines now render per-segment (covering only that segment's cells), not per-LineGroup. To prevent opacity stacking when multiple segments in the same group are visible-with-line, render all guide lines for a LineGroup inside a single `<g opacity="0.3">` element with individual lines at full opacity.
 
 ```typescript
-function renderGuideLine(
-  lineGroup: LineGroup,
-  svgContainer: SVGElement,
+/**
+ * Render a guide line along a segment's cell range.
+ * The line extends from the edge of the first cell to the edge of the last cell.
+ * Caller is responsible for opacity grouping (non-stacking).
+ */
+function renderSegmentGuideLine(
+  segment: Segment,
+  container: SVGElement,
 ): void {
-  if (lineGroup.allCells.length === 0) return;
+  if (segment.cells.length === 0) return;
 
-  const first = toPixel(lineGroup.startCoord, RADIUS);
-  const last = toPixel(lineGroup.endCoord, RADIUS);
+  const first = toPixel(segment.cells[0], RADIUS);
+  const last = toPixel(segment.cells[segment.cells.length - 1], RADIUS);
   const apothem = RADIUS * Math.sqrt(3) / 2;
 
   let x1: number, y1: number, x2: number, y2: number;
 
-  if (lineGroup.allCells.length === 1) {
-    const nextCoord = stepInDirection(lineGroup.allCells[0], lineGroup.axis);
+  if (segment.cells.length === 1) {
+    const nextCoord = stepInDirection(segment.cells[0], segment.axis);
     const next = toPixel(nextCoord, RADIUS);
     const ddx = next.x - first.x;
     const ddy = next.y - first.y;
@@ -1351,10 +1358,10 @@ function renderGuideLine(
   line.setAttribute('x2', String(x2));
   line.setAttribute('y2', String(y2));
   line.setAttribute('stroke', '#ffffff');
-  line.setAttribute('stroke-opacity', '0.3');
   line.setAttribute('stroke-width', '2');
   line.setAttribute('stroke-linecap', 'round');
-  svgContainer.appendChild(line);
+  // No stroke-opacity here — opacity is set on the parent <g> element
+  container.appendChild(line);
 }
 ```
 
@@ -1376,16 +1383,22 @@ export interface ClueRenderOptions {
 Replace the entire `// Render line clues with display state` block (lines 334-438) with segment-based rendering:
 
 ```typescript
-  // Render guide lines per LineGroup (non-stacking: one line per group)
-  const renderedGuideGroups = new Set<string>();
-  for (const seg of grid.segments.values()) {
+  // Render guide lines per-segment, grouped by LineGroup to prevent opacity stacking.
+  // All guide lines for a LineGroup share a single <g opacity="0.3"> wrapper.
+  const guideGroupElements = new Map<string, SVGGElement>();
+  const sortedForGuides = [...grid.segments.values()];
+  for (const seg of sortedForGuides) {
     const state = getState(segmentStates, seg);
-    if (!state.activated) continue;
-    if (state.visibility === 'visible-with-line' && !renderedGuideGroups.has(seg.lineGroupId)) {
-      renderedGuideGroups.add(seg.lineGroupId);
-      const group = grid.lineGroups.get(seg.lineGroupId);
-      if (group) renderGuideLine(group, svgContainer);
+    if (!state.activated || state.visibility !== 'visible-with-line') continue;
+
+    let gEl = guideGroupElements.get(seg.lineGroupId);
+    if (!gEl) {
+      gEl = document.createElementNS(SVG_NS, 'g');
+      gEl.setAttribute('opacity', '0.3');
+      svgContainer.appendChild(gEl);
+      guideGroupElements.set(seg.lineGroupId, gEl);
     }
+    renderSegmentGuideLine(seg, gEl);
   }
 
   // Render segment labels and hit areas
@@ -1549,7 +1562,7 @@ Expected: no type errors.
 
 ```bash
 git add test-apps/04-game-mechanics/src/view/clue-renderer.ts
-git commit -m "Update clue-renderer to use segments and per-LineGroup guide lines"
+git commit -m "Update clue-renderer to use segments with per-segment guide lines"
 ```
 
 ---
@@ -1732,10 +1745,11 @@ Verify:
 - Grid loads and renders correctly
 - Cell clicks work (open, mark, recover)
 - Segment clue labels appear at edge and gap positions
-- Left-click on segment toggles guide line (renders along full LineGroup path)
+- Left-click on segment toggles guide line (renders along that segment's cells only)
 - Right-click on segment toggles dimmed
 - Option-click on segment toggles invisible
-- Multiple guide lines on same LineGroup don't stack opacity
+- Gap segment guide line covers only its cell range, not the full line
+- Multiple guide lines on same LineGroup don't stack opacity in overlapping regions
 - Save/load preserves segment states
 - Grid selector and random generation work
 - Contiguity toggle works for segments

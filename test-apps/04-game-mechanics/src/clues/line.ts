@@ -34,6 +34,129 @@ export function lineGroupId(axis: LineAxis, startCoord: HexCoord): string {
   return `line:${axis}:${coordKey(startCoord)}`;
 }
 
+// --- computeAllSegmentsAndGroups ---
+
+export function computeAllSegmentsAndGroups(
+  cellMap: Map<string, HexCell>,
+): { segments: Map<string, Segment>; lineGroups: Map<string, LineGroup> } {
+  const segments = new Map<string, Segment>();
+  const lineGroups = new Map<string, LineGroup>();
+
+  if (cellMap.size === 0) return { segments, lineGroups };
+
+  const bounds = computeBounds(cellMap);
+
+  for (const cell of cellMap.values()) {
+    for (const axis of ALL_AXES) {
+      if (!isDiagonalStart(cell.coord, axis, cellMap, bounds)) continue;
+
+      const firstCell = cell.coord;
+      const allCells: HexCoord[] = [];
+      const gapPositions: HexCoord[] = [];
+
+      // Walk forward collecting game cells and gap positions within bounds
+      let current = firstCell;
+      while (isWithinBounds(current, bounds)) {
+        if (cellMap.has(coordKey(current))) {
+          allCells.push(current);
+        } else {
+          gapPositions.push(current);
+        }
+        current = stepInDirection(current, axis);
+      }
+
+      // The last game cell is the endCoord
+      const endCoord = allCells[allCells.length - 1];
+      const groupId = lineGroupId(axis, firstCell);
+      const segIds: string[] = [];
+
+      // --- Edge segment: clue at predecessor(firstCell), covers ALL game cells ---
+      const edgeCluePos = predecessor(firstCell, axis);
+      const edgeSegId = segmentId(axis, edgeCluePos);
+      const edgeFilledFlags = allCells.map((c) => {
+        const cell = cellMap.get(coordKey(c));
+        return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
+      });
+      const edgeValue = edgeFilledFlags.filter(Boolean).length;
+      const edgeNotation = computeLineContiguity(edgeFilledFlags, edgeValue);
+      const edgeSegment: Segment = {
+        id: edgeSegId,
+        lineGroupId: groupId,
+        axis,
+        cluePosition: edgeCluePos,
+        cells: allCells,
+        value: edgeValue,
+        notation: edgeNotation,
+        isEdgeClue: true,
+        contiguityEnabled: true,
+      };
+      segments.set(edgeSegId, edgeSegment);
+      segIds.push(edgeSegId);
+
+      // --- Gap segments: one per gap position, covers cells from after the gap to the end ---
+      for (const gapPos of gapPositions) {
+        const gapSegId = segmentId(axis, gapPos);
+        const cellsAfterGap = getCellsAfterPosition(gapPos, allCells, axis, bounds);
+        const gapFilledFlags = cellsAfterGap.map((c) => {
+          const cell = cellMap.get(coordKey(c));
+          return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
+        });
+        const gapValue = gapFilledFlags.filter(Boolean).length;
+        const gapNotation = computeLineContiguity(gapFilledFlags, gapValue);
+        const gapSegment: Segment = {
+          id: gapSegId,
+          lineGroupId: groupId,
+          axis,
+          cluePosition: gapPos,
+          cells: cellsAfterGap,
+          value: gapValue,
+          notation: gapNotation,
+          isEdgeClue: false,
+          contiguityEnabled: true,
+        };
+        segments.set(gapSegId, gapSegment);
+        segIds.push(gapSegId);
+      }
+
+      const lineGroup: LineGroup = {
+        id: groupId,
+        axis,
+        allCells,
+        gapPositions,
+        segmentIds: segIds,
+        startCoord: firstCell,
+        endCoord,
+      };
+      lineGroups.set(groupId, lineGroup);
+    }
+  }
+
+  return { segments, lineGroups };
+}
+
+/**
+ * Return the subset of allCells that come AFTER the given position along the axis.
+ * "After" means: the cell's position is reachable by stepping forward from afterPos.
+ * We walk forward from afterPos and collect matches in allCells.
+ */
+function getCellsAfterPosition(
+  afterPos: HexCoord,
+  allCells: HexCoord[],
+  axis: LineAxis,
+  bounds: GridBounds,
+): HexCoord[] {
+  // Build a set of positions that are strictly after afterPos
+  const afterKeys = new Set<string>();
+  let cur = stepInDirection(afterPos, axis);
+  while (isWithinBounds(cur, bounds)) {
+    afterKeys.add(coordKey(cur));
+    cur = stepInDirection(cur, axis);
+  }
+  return allCells.filter((c) => afterKeys.has(coordKey(c)));
+}
+
+// ---
+
 export interface LineClue {
   axis: LineAxis;
   startCoord: HexCoord;

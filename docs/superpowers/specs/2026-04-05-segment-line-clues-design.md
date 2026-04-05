@@ -138,7 +138,7 @@ State is stored in a `Map<string, SegmentState>` keyed by segment ID.
 
 ### Guide line rendering rule
 
-Guide lines render per LineGroup, not per segment. If **any** segment in a LineGroup has `visible-with-line`, the guide line renders along the full LineGroup path (from `startCoord` to `endCoord`) at fixed opacity (0.3). Multiple segments with `visible-with-line` in the same group do not stack opacity.
+Guide lines render per segment, covering only that segment's cells. If a segment has `visible-with-line`, a guide line renders from the segment's first cell to its last cell at fixed opacity (0.3). When multiple segments in the same LineGroup have `visible-with-line`, their guide lines overlap but must not stack opacity in the shared region. This can be achieved by rendering all guide lines for a LineGroup inside a single SVG `<g>` element with `opacity="0.3"`, with individual lines drawn at full opacity inside the group.
 
 ## Rendering
 
@@ -152,7 +152,7 @@ One triangle per active segment at its `cluePosition`. Always present regardless
 
 ### Guide lines
 
-One per LineGroup. Rendered along full path from `startCoord` to `endCoord` at opacity 0.3 if any segment in the group has `visible-with-line`. Not rendered otherwise.
+One per segment that has `visible-with-line`, covering that segment's cell range only. A gap segment's guide line extends from its first cell to its last cell — not the full LineGroup path. When multiple segments in the same LineGroup are `visible-with-line`, their overlapping portions must not stack opacity. Render all guide lines for a group inside a single `<g opacity="0.3">` with individual lines at full opacity.
 
 ### Label collision avoidance
 
