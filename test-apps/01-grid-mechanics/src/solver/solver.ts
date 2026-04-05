@@ -9,7 +9,6 @@ import {
   deduceFromLineClue,
   deduceFromLineSegment,
   deduceFromGlobalRemaining,
-  lineSegClueId,
 } from './deductions';
 
 export type SolveTier = 'simple' | 'advanced';

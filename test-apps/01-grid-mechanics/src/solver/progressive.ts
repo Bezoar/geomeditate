@@ -206,18 +206,17 @@ export function solveProgressively(
         visibleClues: new Set(visibleClues),
       });
     } else {
-      // Non-cell clue (line/global) — record activation as a step with no cell change
+      // Non-cell clue (line or lineseg) — record activation as a step with no cell change
       const parsed = parseClueId(bestClue);
-      const explanation = parsed.type === 'line'
-        ? `Solver activated ${parsed.axis} line clue at (${coordKey(parsed.coord)})`
-        : parsed.type === 'lineseg'
-        ? `Solver activated ${parsed.axis} segment ${parsed.segIndex} at (${coordKey(parsed.coord)})`
-        : `Solver activated global remaining count`;
+      // Only line and lineseg clues reach here (global is pre-added, not a candidate)
+      const parsed2 = parsed as { type: 'line' | 'lineseg'; axis: string; coord: import('../model/hex-coord').HexCoord; segIndex?: number };
+      const explanation = parsed2.type === 'lineseg'
+        ? `Solver activated ${parsed2.axis} segment ${parsed2.segIndex} at (${coordKey(parsed2.coord)})`
+        : `Solver activated ${parsed2.axis} line clue at (${coordKey(parsed2.coord)})`;
+      const stepCoord = parsed2.coord;
       steps.push({
         deductions: [{
-          coord: parsed.type === 'line' ? parsed.coord
-            : parsed.type === 'lineseg' ? parsed.coord
-            : { col: 0, row: 0 },
+          coord: stepCoord,
           result: 'empty',
           reason: { clueIds: [bestClue], explanation },
         }],

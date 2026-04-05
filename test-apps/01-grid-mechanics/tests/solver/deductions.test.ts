@@ -327,6 +327,13 @@ describe('deduceFromLineClue', () => {
       value,
       notation: 'PLAIN' as any,
       contiguityEnabled: false,
+      segments: [{
+        cells,
+        value,
+        notation: 'PLAIN' as any,
+        contiguityEnabled: true,
+        labelPosition: null,
+      }],
     };
   }
 
