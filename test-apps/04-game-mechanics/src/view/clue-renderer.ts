@@ -1,18 +1,17 @@
 import type { HexGrid } from '../model/hex-grid';
 import { predecessor } from '../clues/line';
-import type { LineClue } from '../clues/line';
+import type { LineClue, Segment } from '../clues/line';
 import { CellGroundTruth, CellVisualState, ClueNotation } from '../model/hex-cell';
 import { coordKey, toPixel, stepInDirection, neighbors, radius2Positions } from '../model/hex-coord';
 import type { HexCoord, LineAxis } from '../model/hex-coord';
 import { formatNeighborClue } from '../clues/neighbor';
 import {
-  type LineClueState,
+  type SegmentState,
   getState,
-  lineClueKey,
   toggleGuideLine,
   toggleDimmed,
   toggleInvisible,
-} from './line-clue-state';
+} from './segment-state';
 
 function computePartialContiguity(filledFlags: boolean[], count: number): ClueNotation {
   if (count <= 1) return ClueNotation.PLAIN;
@@ -183,7 +182,7 @@ function renderGuideLine(
 }
 
 export interface LineClueInteraction {
-  (clueKey: string, newState: LineClueState): void;
+  (clueKey: string, newState: SegmentState): void;
 }
 
 export interface ClueRenderOptions {
@@ -283,7 +282,7 @@ export function renderClues(
   grid: HexGrid,
   svgContainer: SVGElement,
   options: ClueRenderOptions,
-  lineClueStates: Map<string, LineClueState>,
+  lineClueStates: Map<string, SegmentState>,
   hiddenFlowerClues: Set<string>,
   dimmedFlowerClues: Set<string>,
   flowerGuideClues: Set<string>,
@@ -335,9 +334,10 @@ export function renderClues(
   const renderedLabelPositions: Array<{ x: number; y: number }> = [];
   const LABEL_MIN_DIST = RADIUS * 0.6;
 
-  for (const clue of grid.lineClues) {
-    const state = getState(lineClueStates, clue);
-    const key = lineClueKey(clue);
+  // TODO(Task 8): replace grid.lineClues iteration with grid.segments
+  for (const clue of ((grid as unknown as { lineClues: LineClue[] }).lineClues ?? [])) {
+    const state = getState(lineClueStates, clue as unknown as Segment);
+    const key = `${clue.axis}:${coordKey(clue.startCoord)}`;
     const { dx, dy, rotation } = lineClueOffset(clue.axis);
 
     // Render guide line (behind text) if visible-with-line
@@ -395,7 +395,7 @@ export function renderClues(
         intLy = predPixel.y + dy;
 
         // Count from start of diagonal up to and including predecessor
-        const predIdx = clue.cells.findIndex(c => coordKey(c) === adjacentKey);
+        const predIdx = clue.cells.findIndex((c: HexCoord) => coordKey(c) === adjacentKey);
         partialCells = clue.cells.slice(0, predIdx + 1);
       } else {
         // Vertical/descending interior: label above cells going down/down-right
@@ -409,7 +409,7 @@ export function renderClues(
         intLy = nextAnchor.y + dy;
 
         // Count from next cell forward to end of diagonal
-        const nextIdx = clue.cells.findIndex(c => coordKey(c) === adjacentKey);
+        const nextIdx = clue.cells.findIndex((c: HexCoord) => coordKey(c) === adjacentKey);
         partialCells = clue.cells.slice(nextIdx);
       }
 
@@ -442,7 +442,7 @@ function renderLineLabel(
   textX: number, textY: number,
   hitX: number, hitY: number,
   label: string, rotation: number,
-  state: LineClueState, axis: LineAxis,
+  state: SegmentState, axis: LineAxis,
   key: string, svgContainer: SVGElement,
   opts: ClueRenderOptions,
   onLineClueInteraction?: LineClueInteraction,

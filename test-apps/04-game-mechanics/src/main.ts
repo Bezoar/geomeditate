@@ -7,7 +7,7 @@ import { initControls } from './view/controls';
 import { coordKey } from './model/hex-coord';
 import type { HexCoord } from './model/hex-coord';
 import { CellVisualState } from './model/hex-cell';
-import type { LineClueState } from './view/line-clue-state';
+import type { SegmentState } from './view/segment-state';
 import { ActionHistory } from './save/history';
 import { serializeSaveFile, deserializeSaveFile } from './save/save-file';
 import { LocalStorageBackend, downloadJsonFile } from './save/storage';
@@ -16,7 +16,7 @@ const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
 
 let currentGrid: HexGrid;
-let lineClueStates = new Map<string, LineClueState>();
+let segmentStates = new Map<string, SegmentState>();
 let hiddenFlowerClues = new Set<string>();
 let dimmedFlowerClues = new Set<string>();
 let flowerGuideClues = new Set<string>();
@@ -35,7 +35,7 @@ function updateHud(): void {
 
 function render(): void {
   renderGrid(currentGrid, svgEl, handleCellClick, clueOptions.selectionEnabled);
-  renderClues(currentGrid, svgEl, clueOptions, lineClueStates, hiddenFlowerClues, dimmedFlowerClues, flowerGuideClues, handleLineClueInteraction);
+  renderClues(currentGrid, svgEl, clueOptions, segmentStates, hiddenFlowerClues, dimmedFlowerClues, flowerGuideClues, handleLineClueInteraction);
   updateHud();
 }
 
@@ -87,8 +87,8 @@ function handleCellClick(coord: HexCoord, interaction: CellInteraction): void {
   render();
 }
 
-function handleLineClueInteraction(key: string, newState: LineClueState): void {
-  lineClueStates.set(key, newState);
+function handleLineClueInteraction(key: string, newState: SegmentState): void {
+  segmentStates.set(key, newState);
   render();
 }
 
@@ -123,7 +123,7 @@ function loadGrid(index: number): void {
   const config = TEST_GRIDS[index];
   currentGrid = new HexGrid(config);
   currentGrid.computeAllClues();
-  lineClueStates = new Map();
+  segmentStates = new Map();
   hiddenFlowerClues = new Set();
   dimmedFlowerClues = new Set();
   flowerGuideClues = new Set();
@@ -135,7 +135,7 @@ function loadRandomGrid(width: number, height: number, density: number): void {
   const config = generateRandomGrid(width, height, density);
   currentGrid = new HexGrid(config);
   currentGrid.computeAllClues();
-  lineClueStates = new Map();
+  segmentStates = new Map();
   hiddenFlowerClues = new Set();
   dimmedFlowerClues = new Set();
   flowerGuideClues = new Set();
@@ -153,8 +153,8 @@ function bulkSetNeighborContiguity(enabled: boolean): void {
 }
 
 function bulkSetLineContiguity(enabled: boolean): void {
-  for (let i = 0; i < currentGrid.lineClues.length; i++) {
-    currentGrid.lineClues[i] = { ...currentGrid.lineClues[i], contiguityEnabled: enabled };
+  for (const [id, seg] of currentGrid.segments) {
+    currentGrid.segments.set(id, { ...seg, contiguityEnabled: enabled });
   }
   render();
 }
@@ -164,7 +164,7 @@ function handleSave(): void {
     grid: currentGrid,
     name: currentGrid.width + 'x' + currentGrid.height,
     description: '',
-    lineClueStates,
+    segmentStates,
     hiddenFlowerClues,
     dimmedFlowerClues,
     flowerGuideClues,
@@ -179,7 +179,7 @@ function handleSave(): void {
 function loadFromJson(json: string): void {
   const result = deserializeSaveFile(json);
   currentGrid = result.grid;
-  lineClueStates = result.lineClueStates;
+  segmentStates = result.segmentStates;
   hiddenFlowerClues = result.hiddenFlowerClues;
   dimmedFlowerClues = result.dimmedFlowerClues;
   flowerGuideClues = result.flowerGuideClues;
