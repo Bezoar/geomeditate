@@ -355,12 +355,22 @@ export function renderClues(
     // In segment-filtering mode, skip entirely if no segments active
     if (segmentFiltering && !anySegActive) continue;
 
-    // Build labelPosition → segment index map for interior label filtering
+    // Build labelPosition → segment index map for interior label filtering.
+    // The renderer shows different segments at a gap depending on axis:
+    //   ascending: gap shows the segment BEFORE the gap (cells from start to gap)
+    //   vertical/descending: gap shows the segment AFTER the gap (cells from gap to end)
+    // Map each gap to the segment whose value is displayed there.
     const labelPosToSeg = new Map<string, number>();
     for (let si = 0; si < clue.segments.length; si++) {
       const seg = clue.segments[si];
       if (seg.labelPosition !== null) {
-        labelPosToSeg.set(coordKey(seg.labelPosition), si);
+        if (clue.axis === 'ascending') {
+          // Gap is this segment's labelPosition, but renderer shows the PREVIOUS segment
+          if (si > 0) labelPosToSeg.set(coordKey(seg.labelPosition), si - 1);
+        } else {
+          // Gap is this segment's labelPosition, renderer shows THIS segment
+          labelPosToSeg.set(coordKey(seg.labelPosition), si);
+        }
       }
     }
 
