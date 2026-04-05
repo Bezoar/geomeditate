@@ -3,7 +3,7 @@ import { serializeSaveFile, deserializeSaveFile } from '../src/save/save-file';
 import { HexGrid, type TestGridConfig } from '../src/model/hex-grid';
 import { CellGroundTruth, CellVisualState } from '../src/model/hex-cell';
 import { ActionHistory } from '../src/save/history';
-import type { LineClueState } from '../src/view/line-clue-state';
+import type { SegmentState } from '../src/view/segment-state';
 import type { SaveFile } from '../src/save/types';
 
 const testConfig: TestGridConfig = {
@@ -25,7 +25,7 @@ describe('serializeSaveFile', () => {
       grid,
       name: 'Test',
       description: 'A test grid',
-      lineClueStates: new Map(),
+      segmentStates: new Map(),
       hiddenFlowerClues: new Set(),
       dimmedFlowerClues: new Set(),
       flowerGuideClues: new Set(),
@@ -46,7 +46,7 @@ describe('serializeSaveFile', () => {
       grid,
       name: 'Test',
       description: 'A test grid',
-      lineClueStates: new Map(),
+      segmentStates: new Map(),
       hiddenFlowerClues: new Set(),
       dimmedFlowerClues: new Set(),
       flowerGuideClues: new Set(),
@@ -70,7 +70,7 @@ describe('serializeSaveFile', () => {
       grid,
       name: 'Test',
       description: 'A test grid',
-      lineClueStates: new Map(),
+      segmentStates: new Map(),
       hiddenFlowerClues: new Set(),
       dimmedFlowerClues: new Set(),
       flowerGuideClues: new Set(),
@@ -97,7 +97,7 @@ describe('serializeSaveFile', () => {
       grid,
       name: 'Test',
       description: 'A test grid',
-      lineClueStates: new Map(),
+      segmentStates: new Map(),
       hiddenFlowerClues: new Set(),
       dimmedFlowerClues: new Set(),
       flowerGuideClues: new Set(),
@@ -123,8 +123,8 @@ describe('deserializeSaveFile', () => {
     grid.mistakeCount = 1;
     grid.remainingCount = 1;
 
-    const lineClueStates = new Map<string, LineClueState>([
-      ['vertical:0,0', { visibility: 'dimmed', savedVisibility: 'dimmed' }],
+    const segmentStates = new Map<string, SegmentState>([
+      ['seg:vertical:0,0', { visibility: 'dimmed', savedVisibility: 'dimmed', activated: true }],
     ]);
 
     const hiddenFlowerClues = new Set(['0,0']);
@@ -139,7 +139,7 @@ describe('deserializeSaveFile', () => {
       grid,
       name: 'Test',
       description: 'A test grid',
-      lineClueStates,
+      segmentStates,
       hiddenFlowerClues,
       dimmedFlowerClues,
       flowerGuideClues,
@@ -177,9 +177,9 @@ describe('deserializeSaveFile', () => {
     expect(output.dimmedFlowerClues.has('2,0')).toBe(true);
     expect(output.flowerGuideClues.has('0,1')).toBe(true);
 
-    // Line clue states preserved
-    expect(output.lineClueStates.has('vertical:0,0')).toBe(true);
-    expect(output.lineClueStates.get('vertical:0,0')!.visibility).toBe('dimmed');
+    // Segment states preserved
+    expect(output.segmentStates.has('seg:vertical:0,0')).toBe(true);
+    expect(output.segmentStates.get('seg:vertical:0,0')!.visibility).toBe('dimmed');
 
     // History preserved
     expect(output.history.canUndo()).toBe(true);
@@ -217,7 +217,7 @@ describe('deserializeSaveFile', () => {
     expect(output.description).toBe('');
 
     // Progress defaults to empty
-    expect(output.lineClueStates.size).toBe(0);
+    expect(output.segmentStates.size).toBe(0);
     expect(output.hiddenFlowerClues.size).toBe(0);
     expect(output.dimmedFlowerClues.size).toBe(0);
     expect(output.flowerGuideClues.size).toBe(0);
@@ -252,7 +252,7 @@ describe('deserializeSaveFile', () => {
     expect(output.description).toBe('Test without seed');
 
     // Progress/history default to empty
-    expect(output.lineClueStates.size).toBe(0);
+    expect(output.segmentStates.size).toBe(0);
     expect(output.history.canUndo()).toBe(false);
   });
 });

@@ -14,6 +14,10 @@ const testConfig: TestGridConfig = {
   missingCoords: [{ col: 1, row: 1 }],
 };
 
+function segAbbrev(axis: string): string {
+  return axis === 'vertical' ? 'v' : axis === 'left-facing' ? 'l' : 'r';
+}
+
 describe('serializePuzzle', () => {
   it('serializes grid dimensions and ground truth', () => {
     const grid = new HexGrid(testConfig);
@@ -37,13 +41,16 @@ describe('serializePuzzle', () => {
     expect(result.clues?.neighbors?.['1,0']?.contiguity).toBe(false);
   });
 
-  it('serializes non-default line clue contiguity', () => {
+  it('serializes non-default segment contiguity', () => {
     const grid = new HexGrid(testConfig);
     grid.computeAllClues();
-    grid.lineClues[0] = { ...grid.lineClues[0], contiguityEnabled: false };
+    // Disable contiguity on the first segment
+    const firstEntry = grid.segments.entries().next().value!;
+    const [firstId, firstSeg] = firstEntry;
+    grid.segments.set(firstId, { ...firstSeg, contiguityEnabled: false });
     const result = serializePuzzle(grid, 'Test', '');
-    const lineKey = `${grid.lineClues[0].axis.charAt(0)}:${coordKey(grid.lineClues[0].startCoord)}`;
-    expect(result.clues?.lines?.[lineKey]?.contiguity).toBe(false);
+    const segKey = `${segAbbrev(firstSeg.axis)}:${coordKey(firstSeg.cluePosition)}`;
+    expect(result.clues?.lines?.[segKey]?.contiguity).toBe(false);
   });
 
   it('does not serialize contiguity override for filled cells (no neighbor clue)', () => {
@@ -101,13 +108,14 @@ describe('deserializePuzzle', () => {
     expect(grid.cells.get('2,1')!.contiguityEnabled).toBe(true);
   });
 
-  it('applies line clue contiguity overrides', () => {
-    // First, serialize a grid with a line clue override to discover valid keys
+  it('applies segment contiguity overrides', () => {
+    // First, serialize a grid with a segment override to discover valid keys
     const grid1 = new HexGrid(testConfig);
     grid1.computeAllClues();
-    expect(grid1.lineClues.length).toBeGreaterThan(0);
-    const firstClue = grid1.lineClues[0];
-    const lineKey = `${firstClue.axis.charAt(0)}:${coordKey(firstClue.startCoord)}`;
+    expect(grid1.segments.size).toBeGreaterThan(0);
+    const firstEntry = grid1.segments.entries().next().value!;
+    const [, firstSeg] = firstEntry;
+    const segKey = `${segAbbrev(firstSeg.axis)}:${coordKey(firstSeg.cluePosition)}`;
 
     const puzzle: PuzzleDef = {
       name: 'Test',
@@ -117,18 +125,18 @@ describe('deserializePuzzle', () => {
         groundTruth: ['F E F', ' E . E'],
       },
       clues: {
-        lines: { [lineKey]: { contiguity: false } },
+        lines: { [segKey]: { contiguity: false } },
       },
     };
     const grid = deserializePuzzle(puzzle);
-    const matchingClue = grid.lineClues.find(
-      (lc) => `${lc.axis.charAt(0)}:${coordKey(lc.startCoord)}` === lineKey,
+    const matchingSeg = Array.from(grid.segments.values()).find(
+      (seg) => `${segAbbrev(seg.axis)}:${coordKey(seg.cluePosition)}` === segKey,
     );
-    expect(matchingClue).toBeDefined();
-    expect(matchingClue!.contiguityEnabled).toBe(false);
+    expect(matchingSeg).toBeDefined();
+    expect(matchingSeg!.contiguityEnabled).toBe(false);
   });
 
-  it('ignores line clue overrides for non-existent keys', () => {
+  it('ignores segment overrides for non-existent keys', () => {
     const puzzle: PuzzleDef = {
       name: 'Test',
       grid: {
@@ -141,9 +149,9 @@ describe('deserializePuzzle', () => {
       },
     };
     const grid = deserializePuzzle(puzzle);
-    // All line clues should remain with default contiguity
-    for (const lc of grid.lineClues) {
-      expect(lc.contiguityEnabled).toBe(true);
+    // All segments should remain with default contiguity
+    for (const seg of grid.segments.values()) {
+      expect(seg.contiguityEnabled).toBe(true);
     }
   });
 
@@ -164,17 +172,20 @@ describe('deserializePuzzle', () => {
     expect(grid2.cells.get('1,0')!.contiguityEnabled).toBe(false);
   });
 
-  it('round-trips line clue contiguity overrides', () => {
+  it('round-trips segment contiguity overrides', () => {
     const grid1 = new HexGrid(testConfig);
     grid1.computeAllClues();
-    grid1.lineClues[0] = { ...grid1.lineClues[0], contiguityEnabled: false };
+    // Disable contiguity on the first segment
+    const firstEntry = grid1.segments.entries().next().value!;
+    const [firstId, firstSeg] = firstEntry;
+    grid1.segments.set(firstId, { ...firstSeg, contiguityEnabled: false });
 
-    const puzzle = serializePuzzle(grid1, 'Line RT', '');
+    const puzzle = serializePuzzle(grid1, 'Seg RT', '');
     const grid2 = deserializePuzzle(puzzle);
 
-    const key0 = `${grid1.lineClues[0].axis.charAt(0)}:${coordKey(grid1.lineClues[0].startCoord)}`;
-    const match = grid2.lineClues.find(
-      (lc) => `${lc.axis.charAt(0)}:${coordKey(lc.startCoord)}` === key0,
+    const key0 = `${segAbbrev(firstSeg.axis)}:${coordKey(firstSeg.cluePosition)}`;
+    const match = Array.from(grid2.segments.values()).find(
+      (seg) => `${segAbbrev(seg.axis)}:${coordKey(seg.cluePosition)}` === key0,
     );
     expect(match).toBeDefined();
     expect(match!.contiguityEnabled).toBe(false);

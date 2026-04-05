@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { serializeProgress, deserializeProgress } from '../src/save/progress-mapper';
 import { HexGrid, type TestGridConfig } from '../src/model/hex-grid';
 import { CellVisualState } from '../src/model/hex-cell';
-import type { LineClueState } from '../src/view/line-clue-state';
+import type { SegmentState } from '../src/view/segment-state';
 import type { ProgressState } from '../src/save/types';
 
 const testConfig: TestGridConfig = {
@@ -66,20 +66,20 @@ describe('serializeProgress', () => {
     expect(result.clues!.flowers!['0,1']).toEqual({ visibility: 'guide' });
   });
 
-  it('includes line clue visibility overrides with key format conversion', () => {
+  it('includes segment visibility overrides with key format conversion', () => {
     const grid = new HexGrid(testConfig);
     grid.computeAllClues();
     grid.coverAll();
 
-    const lineStates = new Map<string, LineClueState>([
-      ['vertical:0,0', { visibility: 'invisible', savedVisibility: 'visible' }],
-      ['left-facing:1,0', { visibility: 'dimmed', savedVisibility: 'dimmed' }],
-      ['right-facing:2,0', { visibility: 'visible-with-line', savedVisibility: 'visible-with-line' }],
+    const segStates = new Map<string, SegmentState>([
+      ['seg:vertical:0,0', { visibility: 'invisible', savedVisibility: 'visible', activated: true }],
+      ['seg:left-facing:1,0', { visibility: 'dimmed', savedVisibility: 'dimmed', activated: true }],
+      ['seg:right-facing:2,0', { visibility: 'visible-with-line', savedVisibility: 'visible-with-line', activated: true }],
     ]);
 
     const result = serializeProgress(
       grid,
-      lineStates,
+      segStates,
       new Set(),
       new Set(),
       new Set(),
@@ -92,18 +92,18 @@ describe('serializeProgress', () => {
     expect(result.clues!.lines!['r:2,0']).toEqual({ visibility: 'visible-with-line' });
   });
 
-  it('omits line clues with visible (default) visibility', () => {
+  it('omits segments with visible (default) visibility', () => {
     const grid = new HexGrid(testConfig);
     grid.computeAllClues();
     grid.coverAll();
 
-    const lineStates = new Map<string, LineClueState>([
-      ['vertical:0,0', { visibility: 'visible', savedVisibility: 'visible' }],
+    const segStates = new Map<string, SegmentState>([
+      ['seg:vertical:0,0', { visibility: 'visible', savedVisibility: 'visible', activated: true }],
     ]);
 
     const result = serializeProgress(
       grid,
-      lineStates,
+      segStates,
       new Set(),
       new Set(),
       new Set(),
@@ -217,7 +217,7 @@ describe('deserializeProgress', () => {
     expect(result.flowerGuideClues.size).toBe(1);
   });
 
-  it('restores line clue visibility with key format conversion (v:0,0 -> vertical:0,0)', () => {
+  it('restores segment visibility with key format conversion (v:0,0 -> seg:vertical:0,0)', () => {
     const grid = new HexGrid(testConfig);
     grid.computeAllClues();
     grid.coverAll();
@@ -237,14 +237,14 @@ describe('deserializeProgress', () => {
 
     const result = deserializeProgress(progress, grid);
 
-    expect(result.lineClueStates.has('vertical:0,0')).toBe(true);
-    expect(result.lineClueStates.get('vertical:0,0')!.visibility).toBe('dimmed');
+    expect(result.segmentStates.has('seg:vertical:0,0')).toBe(true);
+    expect(result.segmentStates.get('seg:vertical:0,0')!.visibility).toBe('dimmed');
 
-    expect(result.lineClueStates.has('left-facing:1,0')).toBe(true);
-    expect(result.lineClueStates.get('left-facing:1,0')!.visibility).toBe('invisible');
+    expect(result.segmentStates.has('seg:left-facing:1,0')).toBe(true);
+    expect(result.segmentStates.get('seg:left-facing:1,0')!.visibility).toBe('invisible');
 
-    expect(result.lineClueStates.has('right-facing:2,0')).toBe(true);
-    expect(result.lineClueStates.get('right-facing:2,0')!.visibility).toBe('visible-with-line');
+    expect(result.segmentStates.has('seg:right-facing:2,0')).toBe(true);
+    expect(result.segmentStates.get('seg:right-facing:2,0')!.visibility).toBe('visible-with-line');
   });
 
   it('sets savedVisibility correctly (invisible -> visible, others -> same)', () => {
@@ -268,11 +268,11 @@ describe('deserializeProgress', () => {
     const result = deserializeProgress(progress, grid);
 
     // invisible -> savedVisibility should be 'visible'
-    expect(result.lineClueStates.get('vertical:0,0')!.savedVisibility).toBe('visible');
+    expect(result.segmentStates.get('seg:vertical:0,0')!.savedVisibility).toBe('visible');
     // dimmed -> savedVisibility should be 'dimmed'
-    expect(result.lineClueStates.get('left-facing:1,0')!.savedVisibility).toBe('dimmed');
+    expect(result.segmentStates.get('seg:left-facing:1,0')!.savedVisibility).toBe('dimmed');
     // visible-with-line -> savedVisibility should be 'visible-with-line'
-    expect(result.lineClueStates.get('right-facing:2,0')!.savedVisibility).toBe('visible-with-line');
+    expect(result.segmentStates.get('seg:right-facing:2,0')!.savedVisibility).toBe('visible-with-line');
   });
 
   it('returns empty sets/maps when no clue overrides present', () => {
@@ -291,7 +291,7 @@ describe('deserializeProgress', () => {
     expect(result.hiddenFlowerClues.size).toBe(0);
     expect(result.dimmedFlowerClues.size).toBe(0);
     expect(result.flowerGuideClues.size).toBe(0);
-    expect(result.lineClueStates.size).toBe(0);
+    expect(result.segmentStates.size).toBe(0);
   });
 });
 

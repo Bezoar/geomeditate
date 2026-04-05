@@ -1,6 +1,6 @@
 import type { PuzzleDef, CluesDef, NeighborClueDef, LineClueDef } from './types';
 import type { HexGrid } from '../model/hex-grid';
-import type { LineClue } from '../clues/line';
+import type { Segment } from '../clues/line';
 import { CellGroundTruth, type HexCell } from '../model/hex-cell';
 import { coordKey, parseCoordKey } from '../model/hex-coord';
 import { encodeGridString, decodeGridString } from './grid-string';
@@ -10,9 +10,9 @@ function groundTruthChar(cell: HexCell): string {
   return cell.groundTruth === CellGroundTruth.FILLED ? 'F' : 'E';
 }
 
-function lineClueKey(clue: LineClue): string {
-  const abbrev = clue.axis === 'vertical' ? 'v' : clue.axis === 'left-facing' ? 'l' : 'r';
-  return `${abbrev}:${coordKey(clue.startCoord)}`;
+function segmentSaveKey(seg: Segment): string {
+  const abbrev = seg.axis === 'vertical' ? 'v' : seg.axis === 'left-facing' ? 'l' : 'r';
+  return `${abbrev}:${coordKey(seg.cluePosition)}`;
 }
 
 export function serializePuzzle(
@@ -36,9 +36,9 @@ export function serializePuzzle(
   }
 
   const lineOverrides: Record<string, LineClueDef> = {};
-  for (const clue of grid.lineClues) {
-    if (!clue.contiguityEnabled) {
-      lineOverrides[lineClueKey(clue)] = { contiguity: false };
+  for (const seg of grid.segments.values()) {
+    if (!seg.contiguityEnabled) {
+      lineOverrides[segmentSaveKey(seg)] = { contiguity: false };
     }
   }
 
@@ -103,9 +103,10 @@ export function deserializePuzzle(puzzle: PuzzleDef): HexGrid {
   if (puzzle.clues?.lines) {
     for (const [key, def] of Object.entries(puzzle.clues.lines)) {
       if (def.contiguity === false) {
-        const idx = grid.lineClues.findIndex((lc: LineClue) => lineClueKey(lc) === key);
-        if (idx !== -1) {
-          grid.lineClues[idx] = { ...grid.lineClues[idx], contiguityEnabled: false };
+        for (const [id, seg] of grid.segments) {
+          if (segmentSaveKey(seg) === key) {
+            grid.segments.set(id, { ...seg, contiguityEnabled: false });
+          }
         }
       }
     }

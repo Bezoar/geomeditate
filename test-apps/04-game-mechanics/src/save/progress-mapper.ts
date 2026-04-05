@@ -1,6 +1,6 @@
 import type { ProgressState, ProgressCluesDef, ProgressFlowerClueDef, ProgressLineClueDef } from './types';
 import type { HexGrid } from '../model/hex-grid';
-import type { LineClueState } from '../view/line-clue-state';
+import type { SegmentState } from '../view/segment-state';
 import { CellVisualState } from '../model/hex-cell';
 import { encodeGridString, decodeGridString } from './grid-string';
 
@@ -21,27 +21,27 @@ function charToVisualState(char: string): CellVisualState {
   }
 }
 
-/** Convert internal line clue key format "axis:col,row" to save format "l:col,row". */
-function toSaveLineKey(internalKey: string): string {
-  const colonIdx = internalKey.indexOf(':');
-  const axis = internalKey.substring(0, colonIdx);
-  const coord = internalKey.substring(colonIdx + 1);
+/** Convert segment ID "seg:axis:col,row" to save format "l:col,row". */
+function toSaveSegmentKey(segId: string): string {
+  const parts = segId.split(':');
+  const axis = parts[1];
+  const coord = parts.slice(2).join(':');
   const abbrev = axis === 'vertical' ? 'v' : axis === 'left-facing' ? 'l' : 'r';
   return `${abbrev}:${coord}`;
 }
 
-/** Convert save format line key "l:col,row" to internal format "left-facing:col,row". */
-function toInternalLineKey(saveKey: string): string {
+/** Convert save format "l:col,row" to segment ID "seg:left-facing:col,row". */
+function toSegmentId(saveKey: string): string {
   const colonIdx = saveKey.indexOf(':');
   const abbrev = saveKey.substring(0, colonIdx);
   const coord = saveKey.substring(colonIdx + 1);
   const axis = abbrev === 'v' ? 'vertical' : abbrev === 'l' ? 'left-facing' : 'right-facing';
-  return `${axis}:${coord}`;
+  return `seg:${axis}:${coord}`;
 }
 
 export function serializeProgress(
   grid: HexGrid,
-  lineClueStates: Map<string, LineClueState>,
+  segmentStates: Map<string, SegmentState>,
   hiddenFlowerClues: Set<string>,
   dimmedFlowerClues: Set<string>,
   flowerGuideClues: Set<string>,
@@ -67,9 +67,9 @@ export function serializeProgress(
 
   // Collect line clue overrides (non-default visibility)
   const lineOverrides: Record<string, ProgressLineClueDef> = {};
-  for (const [key, state] of lineClueStates) {
+  for (const [segId, state] of segmentStates) {
     if (state.visibility !== 'visible') {
-      lineOverrides[toSaveLineKey(key)] = { visibility: state.visibility };
+      lineOverrides[toSaveSegmentKey(segId)] = { visibility: state.visibility };
     }
   }
 
@@ -93,7 +93,7 @@ export function serializeProgress(
 }
 
 export interface DeserializedProgress {
-  lineClueStates: Map<string, LineClueState>;
+  segmentStates: Map<string, SegmentState>;
   hiddenFlowerClues: Set<string>;
   dimmedFlowerClues: Set<string>;
   flowerGuideClues: Set<string>;
@@ -130,19 +130,20 @@ export function deserializeProgress(
     }
   }
 
-  // Restore line clue visibility
-  const lineClueStates = new Map<string, LineClueState>();
+  // Restore segment visibility
+  const segmentStates = new Map<string, SegmentState>();
   if (progress.clues?.lines) {
     for (const [saveKey, def] of Object.entries(progress.clues.lines)) {
-      const internalKey = toInternalLineKey(saveKey);
+      const segId = toSegmentId(saveKey);
       if (def.visibility) {
-        lineClueStates.set(internalKey, {
+        segmentStates.set(segId, {
           visibility: def.visibility,
           savedVisibility: def.visibility === 'invisible' ? 'visible' : def.visibility,
+          activated: true,
         });
       }
     }
   }
 
-  return { lineClueStates, hiddenFlowerClues, dimmedFlowerClues, flowerGuideClues };
+  return { segmentStates, hiddenFlowerClues, dimmedFlowerClues, flowerGuideClues };
 }

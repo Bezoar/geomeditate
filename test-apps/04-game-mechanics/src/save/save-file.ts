@@ -1,6 +1,6 @@
 import type { SaveFile } from './types';
 import type { HexGrid } from '../model/hex-grid';
-import type { LineClueState } from '../view/line-clue-state';
+import type { SegmentState } from '../view/segment-state';
 import { serializePuzzle, deserializePuzzle } from './puzzle-mapper';
 import { serializeProgress, deserializeProgress, type DeserializedProgress } from './progress-mapper';
 import { ActionHistory } from './history';
@@ -9,7 +9,7 @@ export interface SaveFileInput {
   grid: HexGrid;
   name: string;
   description: string;
-  lineClueStates: Map<string, LineClueState>;
+  segmentStates: Map<string, SegmentState>;
   hiddenFlowerClues: Set<string>;
   dimmedFlowerClues: Set<string>;
   flowerGuideClues: Set<string>;
@@ -27,7 +27,7 @@ export function serializeSaveFile(input: SaveFileInput): string {
   const puzzle = serializePuzzle(input.grid, input.name, input.description);
   const progress = serializeProgress(
     input.grid,
-    input.lineClueStates,
+    input.segmentStates,
     input.hiddenFlowerClues,
     input.dimmedFlowerClues,
     input.flowerGuideClues,
@@ -54,7 +54,7 @@ export function deserializeSaveFile(json: string): SaveFileOutput {
   const grid = deserializePuzzle(data.puzzle);
 
   let progressResult: DeserializedProgress = {
-    lineClueStates: new Map(),
+    segmentStates: new Map(),
     hiddenFlowerClues: new Set(),
     dimmedFlowerClues: new Set(),
     flowerGuideClues: new Set(),
