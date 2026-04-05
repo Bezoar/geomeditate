@@ -386,7 +386,8 @@ export function renderClues(
         : predecessor(clue.startCoord, clue.axis);
     const edgeHit = toPixel(edgeCoord, RADIUS);
 
-    if (!overlapsCell(edgeLx, edgeLy, grid)) {
+    // In segment-filtering mode, skip the edge label — only segment labels are shown
+    if (!segmentFiltering && !overlapsCell(edgeLx, edgeLy, grid)) {
       const tooClose = renderedLabelPositions.some(p => {
         const px = edgeLx - p.x;
         const py = edgeLy - p.y;
