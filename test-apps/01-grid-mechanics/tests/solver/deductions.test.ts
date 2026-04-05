@@ -3,18 +3,20 @@ import {
   neighborClueId,
   flowerClueId,
   lineClueId,
+  lineSegClueId,
   GLOBAL_REMAINING_ID,
   parseClueId,
   deduceFromNeighborClue,
   deduceFromFlowerClue,
   deduceFromLineClue,
+  deduceFromLineSegment,
   deduceFromGlobalRemaining,
 } from '../../src/solver/deductions';
-import { createCell, CellGroundTruth, CellVisualState } from '../../src/model/hex-cell';
+import { createCell, CellGroundTruth, CellVisualState, ClueNotation } from '../../src/model/hex-cell';
 import type { HexCell } from '../../src/model/hex-cell';
 import type { HexCoord } from '../../src/model/hex-coord';
 import { coordKey } from '../../src/model/hex-coord';
-import type { LineClue } from '../../src/clues/line';
+import type { LineClue, LineSegment } from '../../src/clues/line';
 
 // ─── Test helpers ─────────────────────────────────────────────────────────────
 
@@ -67,6 +69,15 @@ describe('clue ID helpers', () => {
 
   it('throws on unknown clue ID format', () => {
     expect(() => parseClueId('unknown:foo')).toThrow();
+  });
+
+  it('creates line segment clue ID', () => {
+    expect(lineSegClueId('ascending', { col: 0, row: 4 }, 1)).toBe('lineseg:ascending:0,4:1');
+  });
+
+  it('parses lineseg clue ID', () => {
+    const parsed = parseClueId('lineseg:ascending:0,4:1');
+    expect(parsed).toEqual({ type: 'lineseg', axis: 'ascending', coord: { col: 0, row: 4 }, segIndex: 1 });
   });
 });
 
@@ -477,6 +488,96 @@ describe('deduceFromGlobalRemaining', () => {
     const cellMap = buildMap(cells);
 
     const result = deduceFromGlobalRemaining(0, cellMap);
+    expect(result).toEqual([]);
+  });
+});
+
+// ─── deduceFromLineSegment ────────────────────────────────────────────────────
+
+describe('deduceFromLineSegment', () => {
+  const startCoord: HexCoord = { col: 0, row: 2 };
+  const axis = 'ascending' as const;
+  const segIndex = 0;
+
+  function makeSegment(cells: HexCoord[], value: number): LineSegment {
+    return {
+      cells,
+      value,
+      notation: ClueNotation.PLAIN,
+      contiguityEnabled: false,
+      labelPosition: null,
+    };
+  }
+
+  /**
+   * Segment value equals marked count → all covered cells are EMPTY.
+   */
+  it('deduces covered cells empty when segment value equals marked count', () => {
+    const c1: HexCoord = { col: 0, row: 2 };
+    const c2: HexCoord = { col: 0, row: 3 };
+    const c3: HexCoord = { col: 0, row: 4 };
+
+    const cells = [
+      makeCell(c1, CellGroundTruth.FILLED, CellVisualState.MARKED_FILLED),
+      makeCell(c2, CellGroundTruth.FILLED, CellVisualState.MARKED_FILLED),
+      makeCell(c3, CellGroundTruth.EMPTY, CellVisualState.COVERED),
+    ];
+    const cellMap = buildMap(cells);
+    const segment = makeSegment([c1, c2, c3], 2);
+
+    const result = deduceFromLineSegment(segment, axis, startCoord, segIndex, cellMap);
+    expect(result).toHaveLength(1);
+    expect(result[0].coord).toEqual(c3);
+    expect(result[0].result).toBe('empty');
+    expect(result[0].reason.clueIds).toContain(lineSegClueId(axis, startCoord, segIndex));
+  });
+
+  /**
+   * Remaining needed equals covered count → all covered cells are FILLED.
+   */
+  it('deduces covered cells filled when remaining equals covered count', () => {
+    const c1: HexCoord = { col: 0, row: 2 };
+    const c2: HexCoord = { col: 0, row: 3 };
+    const c3: HexCoord = { col: 0, row: 4 };
+
+    const cells = [
+      makeCell(c1, CellGroundTruth.FILLED, CellVisualState.MARKED_FILLED),
+      makeCell(c2, CellGroundTruth.FILLED, CellVisualState.COVERED),
+      makeCell(c3, CellGroundTruth.FILLED, CellVisualState.COVERED),
+    ];
+    const cellMap = buildMap(cells);
+    const segment = makeSegment([c1, c2, c3], 3);
+
+    const result = deduceFromLineSegment(segment, axis, startCoord, segIndex, cellMap);
+    expect(result).toHaveLength(2);
+    result.forEach((d) => {
+      expect(d.result).toBe('filled');
+      expect(d.reason.clueIds).toContain(lineSegClueId(axis, startCoord, segIndex));
+    });
+    const coords = result.map((d) => d.coord);
+    expect(coords).toContainEqual(c2);
+    expect(coords).toContainEqual(c3);
+  });
+
+  /**
+   * Ambiguous: segment value=2, 1 filled, 3 covered → no deduction.
+   */
+  it('returns [] when ambiguous', () => {
+    const c1: HexCoord = { col: 0, row: 2 };
+    const c2: HexCoord = { col: 0, row: 3 };
+    const c3: HexCoord = { col: 0, row: 4 };
+    const c4: HexCoord = { col: 0, row: 5 };
+
+    const cells = [
+      makeCell(c1, CellGroundTruth.FILLED, CellVisualState.MARKED_FILLED),
+      makeCell(c2, CellGroundTruth.EMPTY, CellVisualState.COVERED),
+      makeCell(c3, CellGroundTruth.EMPTY, CellVisualState.COVERED),
+      makeCell(c4, CellGroundTruth.EMPTY, CellVisualState.COVERED),
+    ];
+    const cellMap = buildMap(cells);
+    const segment = makeSegment([c1, c2, c3, c4], 2);
+
+    const result = deduceFromLineSegment(segment, axis, startCoord, segIndex, cellMap);
     expect(result).toEqual([]);
   });
 });

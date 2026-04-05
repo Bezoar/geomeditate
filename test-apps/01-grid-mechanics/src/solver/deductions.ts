@@ -1,7 +1,7 @@
 import type { HexCoord, LineAxis } from '../model/hex-coord';
 import { coordKey, parseCoordKey, neighbors, radius2Positions } from '../model/hex-coord';
 import { CellVisualState, type HexCell } from '../model/hex-cell';
-import type { LineClue } from '../clues/line';
+import type { LineClue, LineSegment } from '../clues/line';
 
 /** Identifies a specific clue instance. */
 export type ClueId = string;
@@ -18,12 +18,17 @@ export function lineClueId(axis: LineAxis, startCoord: HexCoord): ClueId {
   return `line:${axis}:${coordKey(startCoord)}`;
 }
 
+export function lineSegClueId(axis: LineAxis, startCoord: HexCoord, segIndex: number): ClueId {
+  return `lineseg:${axis}:${coordKey(startCoord)}:${segIndex}`;
+}
+
 export const GLOBAL_REMAINING_ID: ClueId = 'global:remaining';
 
 export type ParsedClueId =
   | { type: 'neighbor'; coord: HexCoord }
   | { type: 'flower'; coord: HexCoord }
   | { type: 'line'; axis: LineAxis; coord: HexCoord }
+  | { type: 'lineseg'; axis: LineAxis; coord: HexCoord; segIndex: number }
   | { type: 'global' };
 
 export function parseClueId(id: ClueId): ParsedClueId {
@@ -33,6 +38,14 @@ export function parseClueId(id: ClueId): ParsedClueId {
   }
   if (id.startsWith('flower:')) {
     return { type: 'flower', coord: parseCoordKey(id.slice('flower:'.length)) };
+  }
+  if (id.startsWith('lineseg:')) {
+    const rest = id.slice('lineseg:'.length);
+    const parts = rest.split(':');
+    const axis = parts[0] as LineAxis;
+    const coord = parseCoordKey(parts[1]);
+    const segIndex = Number(parts[2]);
+    return { type: 'lineseg', axis, coord, segIndex };
   }
   if (id.startsWith('line:')) {
     const rest = id.slice('line:'.length);
@@ -172,6 +185,28 @@ export function deduceFromLineClue(lineClue: LineClue, cellMap: Map<string, HexC
     result === 'empty'
       ? `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} found`
       : `${lineClue.axis} line shows ${lineClue.value} filled, ${markedFilled} found, ${covered.length} covered`,
+  );
+}
+
+/**
+ * Examine a line segment clue and return deductions.
+ *
+ * A segment is a sub-range of a line clue separated by gaps. Each segment has
+ * its own fill count. The segment clue is always visible.
+ */
+export function deduceFromLineSegment(
+  segment: LineSegment,
+  axis: LineAxis,
+  lineStartCoord: HexCoord,
+  segIndex: number,
+  cellMap: Map<string, HexCell>,
+): Deduction[] {
+  const { markedFilled, covered } = countStates(segment.cells, cellMap);
+  const id = lineSegClueId(axis, lineStartCoord, segIndex);
+  return applyDeduction(segment.value, markedFilled, covered, id, (result) =>
+    result === 'empty'
+      ? `${axis} segment ${segIndex} shows ${segment.value} filled, ${markedFilled} found`
+      : `${axis} segment ${segIndex} shows ${segment.value} filled, ${markedFilled} found, ${covered.length} covered`,
   );
 }
 
