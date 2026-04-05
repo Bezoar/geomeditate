@@ -157,17 +157,6 @@ function getCellsAfterPosition(
 
 // ---
 
-export interface LineClue {
-  axis: LineAxis;
-  startCoord: HexCoord;
-  cells: HexCoord[];
-  /** Missing positions along the diagonal that can hold additional clue labels. */
-  labelPositions: HexCoord[];
-  value: number;
-  notation: ClueNotation;
-  contiguityEnabled: boolean;
-}
-
 interface GridBounds {
   minCol: number;
   maxCol: number;
@@ -191,7 +180,7 @@ function computeBounds(cellMap: Map<string, HexCell>): GridBounds {
  * Compute the predecessor coordinate for a given cell along a given axis.
  * The predecessor is at col-1 (for diagonals) which has OPPOSITE parity.
  */
-export function predecessor(coord: HexCoord, axis: LineAxis): HexCoord {
+function predecessor(coord: HexCoord, axis: LineAxis): HexCoord {
   if (axis === 'vertical') {
     return { col: coord.col, row: coord.row - 1 };
   }
@@ -230,37 +219,6 @@ function isDiagonalStart(
 }
 
 /**
- * Walk the entire diagonal from start, collecting all cells that exist in the
- * cellMap. Gaps (missing cells within grid bounds) are skipped, not treated as
- * line breaks.
- */
-export function computeLineClue(
-  start: HexCoord,
-  axis: LineAxis,
-  cellMap: Map<string, HexCell>,
-): LineClue {
-  const bounds = computeBounds(cellMap);
-  const cells: HexCoord[] = [];
-  const labelPositions: HexCoord[] = [];
-  let current = start;
-  while (isWithinBounds(current, bounds)) {
-    if (cellMap.has(coordKey(current))) {
-      cells.push(current);
-    } else {
-      labelPositions.push(current);
-    }
-    current = stepInDirection(current, axis);
-  }
-  const filledFlags = cells.map((c) => {
-    const cell = cellMap.get(coordKey(c));
-    return cell !== undefined && cell.groundTruth === CellGroundTruth.FILLED;
-  });
-  const value = filledFlags.filter(Boolean).length;
-  const notation = computeLineContiguity(filledFlags, value);
-  return { axis, startCoord: cells[0], cells, labelPositions, value, notation, contiguityEnabled: true };
-}
-
-/**
  * Determine contiguity for filled cells along a line.
  * PLAIN if 0 or 1 filled. CONTIGUOUS if all filled form one unbroken run.
  * DISCONTIGUOUS if there are gaps (empty cells between filled cells).
@@ -284,22 +242,3 @@ function computeLineContiguity(filledFlags: boolean[], count: number): ClueNotat
 }
 
 const ALL_AXES: readonly LineAxis[] = ['vertical', 'left-facing', 'right-facing'];
-
-export function computeAllLineClues(
-  cellMap: Map<string, HexCell>,
-): LineClue[] {
-  if (cellMap.size === 0) return [];
-
-  const bounds = computeBounds(cellMap);
-  const result: LineClue[] = [];
-
-  for (const cell of cellMap.values()) {
-    for (const axis of ALL_AXES) {
-      if (isDiagonalStart(cell.coord, axis, cellMap, bounds)) {
-        result.push(computeLineClue(cell.coord, axis, cellMap));
-      }
-    }
-  }
-
-  return result;
-}
