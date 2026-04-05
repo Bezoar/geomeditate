@@ -11,7 +11,8 @@ function groundTruthChar(cell: HexCell): string {
 }
 
 function lineClueKey(clue: LineClue): string {
-  return `${clue.axis.charAt(0)}:${coordKey(clue.startCoord)}`;
+  const abbrev = clue.axis === 'vertical' ? 'v' : clue.axis === 'left-facing' ? 'l' : 'r';
+  return `${abbrev}:${coordKey(clue.startCoord)}`;
 }
 
 export function serializePuzzle(

@@ -21,21 +21,21 @@ function charToVisualState(char: string): CellVisualState {
   }
 }
 
-/** Convert internal line clue key format "axis:col,row" to save format "a:col,row". */
+/** Convert internal line clue key format "axis:col,row" to save format "l:col,row". */
 function toSaveLineKey(internalKey: string): string {
   const colonIdx = internalKey.indexOf(':');
   const axis = internalKey.substring(0, colonIdx);
   const coord = internalKey.substring(colonIdx + 1);
-  const abbrev = axis === 'vertical' ? 'v' : axis === 'ascending' ? 'a' : 'd';
+  const abbrev = axis === 'vertical' ? 'v' : axis === 'left-facing' ? 'l' : 'r';
   return `${abbrev}:${coord}`;
 }
 
-/** Convert save format line key "a:col,row" to internal format "ascending:col,row". */
+/** Convert save format line key "l:col,row" to internal format "left-facing:col,row". */
 function toInternalLineKey(saveKey: string): string {
   const colonIdx = saveKey.indexOf(':');
   const abbrev = saveKey.substring(0, colonIdx);
   const coord = saveKey.substring(colonIdx + 1);
-  const axis = abbrev === 'v' ? 'vertical' : abbrev === 'a' ? 'ascending' : 'descending';
+  const axis = abbrev === 'v' ? 'vertical' : abbrev === 'l' ? 'left-facing' : 'right-facing';
   return `${axis}:${coord}`;
 }
 

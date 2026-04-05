@@ -41,25 +41,25 @@ export function neighbors(coord: HexCoord): HexCoord[] {
   return offsets.map(([dc, dr]) => ({ col: coord.col + dc, row: coord.row + dr }));
 }
 
-export type LineAxis = 'vertical' | 'ascending' | 'descending';
+export type LineAxis = 'vertical' | 'left-facing' | 'right-facing';
 
 /**
  * Step one cell in a given axis direction.
  * - vertical: same column, row + 1
- * - ascending: upper-right neighbor (index 0 in offset table)
- * - descending: right neighbor (index 1 in offset table)
+ * - left-facing: upper-right neighbor (index 0 in offset table)
+ * - right-facing: right neighbor (index 1 in offset table)
  */
 export function stepInDirection(coord: HexCoord, axis: LineAxis): HexCoord {
   if (axis === 'vertical') {
     return { col: coord.col, row: coord.row + 1 };
   }
   const offsets = coord.col % 2 === 0 ? EVEN_COL_OFFSETS : ODD_COL_OFFSETS;
-  if (axis === 'ascending') {
+  if (axis === 'left-facing') {
     // Upper-right direction
     const [dc, dr] = offsets[0];
     return { col: coord.col + dc, row: coord.row + dr };
   }
-  // descending: right direction
+  // right-facing: right direction
   const [dc, dr] = offsets[1];
   return { col: coord.col + dc, row: coord.row + dr };
 }

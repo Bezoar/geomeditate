@@ -56,7 +56,7 @@ describe('neighbors', () => {
   });
 });
 
-// --- T008: Line traversal (vertical, ascending-right, descending-right) ---
+// --- T008: Line traversal (vertical, left-facing, right-facing) ---
 
 describe('lineAlongAxis', () => {
   it('returns cells along the vertical axis (same column)', () => {
@@ -71,26 +71,26 @@ describe('lineAlongAxis', () => {
     expect(result.map(coordKey)).toEqual(['2,0', '2,1']);
   });
 
-  it('traverses ascending-right diagonal', () => {
+  it('traverses left-facing diagonal', () => {
     // From (0,1) going upper-right repeatedly
     // Even col (0,1) → upper-right is (1,0)
     // Odd col (1,0) → upper-right is (2,0)
     // Even col (2,0) → upper-right is (3,-1)
     const cells = new Set(['0,1', '1,0', '2,0', '3,-1']);
-    const result = lineAlongAxis({ col: 0, row: 1 }, 'ascending', cells);
+    const result = lineAlongAxis({ col: 0, row: 1 }, 'left-facing', cells);
     expect(result.map(coordKey)).toEqual(['0,1', '1,0', '2,0', '3,-1']);
   });
 
-  it('traverses descending-right diagonal', () => {
+  it('traverses right-facing diagonal', () => {
     // From (0,0) going lower-right (which is "right" in even col offset)
     // Even col (0,0) → right is (1,0)
     // Odd col (1,0) → right is (2,1)
     // Even col (2,1) → right is (3,1) -- wait, let me reconsider
-    // Actually "descending" = upper-right-to-lower-left direction
+    // Actually "right-facing" = upper-right-to-lower-left direction
     // Let's define it as stepping via the "right" neighbor offset
     // Even col: right = (+1, 0); Odd col: right = (+1, +1)
     const cells = new Set(['0,0', '1,0', '2,1', '3,1']);
-    const result = lineAlongAxis({ col: 0, row: 0 }, 'descending', cells);
+    const result = lineAlongAxis({ col: 0, row: 0 }, 'right-facing', cells);
     expect(result.map(coordKey)).toEqual(['0,0', '1,0', '2,1', '3,1']);
   });
 

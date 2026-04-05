@@ -41,7 +41,7 @@ export function predecessor(coord: HexCoord, axis: LineAxis): HexCoord {
     return { col: coord.col, row: coord.row - 1 };
   }
   const predIsEven = coord.col % 2 !== 0;
-  if (axis === 'ascending') {
+  if (axis === 'left-facing') {
     return predIsEven
       ? { col: coord.col - 1, row: coord.row + 1 }
       : { col: coord.col - 1, row: coord.row };
@@ -128,7 +128,7 @@ function computeLineContiguity(filledFlags: boolean[], count: number): ClueNotat
   return runs === 1 ? ClueNotation.CONTIGUOUS : ClueNotation.DISCONTIGUOUS;
 }
 
-const ALL_AXES: readonly LineAxis[] = ['vertical', 'ascending', 'descending'];
+const ALL_AXES: readonly LineAxis[] = ['vertical', 'left-facing', 'right-facing'];
 
 export function computeAllLineClues(
   cellMap: Map<string, HexCell>,

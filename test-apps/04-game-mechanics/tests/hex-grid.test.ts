@@ -310,8 +310,8 @@ describe('HexGrid.computeAllClues()', () => {
 
     const axes = new Set(grid.lineClues.map((lc: LineClue) => lc.axis));
     expect(axes.has('vertical')).toBe(true);
-    expect(axes.has('ascending')).toBe(true);
-    expect(axes.has('descending')).toBe(true);
+    expect(axes.has('left-facing')).toBe(true);
+    expect(axes.has('right-facing')).toBe(true);
   });
 
   it('vertical line clues count FILLED cells correctly', () => {

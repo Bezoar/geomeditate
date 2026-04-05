@@ -75,9 +75,9 @@ describe('computeLineClue', () => {
     });
   });
 
-  describe('ascending lines', () => {
-    it('counts filled cells along ascending diagonal', () => {
-      // From (0,1) ascending: (0,1) -> (1,0) -> (2,0) -> (3,-1)
+  describe('left-facing lines', () => {
+    it('counts filled cells along left-facing diagonal', () => {
+      // From (0,1) left-facing: (0,1) -> (1,0) -> (2,0) -> (3,-1)
       // Even col (0,1) upper-right offset [+1,-1] -> (1,0)
       // Odd col (1,0) upper-right offset [+1,0] -> (2,0)
       // Even col (2,0) upper-right offset [+1,-1] -> (3,-1)
@@ -87,14 +87,14 @@ describe('computeLineClue', () => {
         [2, 0, F],
         [3, -1, F],
       ]);
-      const clue = computeLineClue({ col: 0, row: 1 }, 'ascending', cellMap);
-      expect(clue.axis).toBe('ascending');
+      const clue = computeLineClue({ col: 0, row: 1 }, 'left-facing', cellMap);
+      expect(clue.axis).toBe('left-facing');
       expect(clue.startCoord).toEqual({ col: 0, row: 1 });
       expect(clue.cells.map(coordKey)).toEqual(['0,1', '1,0', '2,0', '3,-1']);
       expect(clue.value).toBe(3);
     });
 
-    it('spans gaps in ascending line', () => {
+    it('spans gaps in left-facing line', () => {
       // Missing (2,0): line still includes cells on both sides
       const cellMap = buildCellMap([
         [0, 1, F],
@@ -102,15 +102,15 @@ describe('computeLineClue', () => {
         // (2,0) missing
         [3, -1, F],
       ]);
-      const clue = computeLineClue({ col: 0, row: 1 }, 'ascending', cellMap);
+      const clue = computeLineClue({ col: 0, row: 1 }, 'left-facing', cellMap);
       expect(clue.cells.map(coordKey)).toEqual(['0,1', '1,0', '3,-1']);
       expect(clue.value).toBe(3);
     });
   });
 
-  describe('descending lines', () => {
-    it('counts filled cells along descending diagonal', () => {
-      // From (0,0) descending: (0,0) -> (1,0) -> (2,1) -> (3,1)
+  describe('right-facing lines', () => {
+    it('counts filled cells along right-facing diagonal', () => {
+      // From (0,0) right-facing: (0,0) -> (1,0) -> (2,1) -> (3,1)
       // Even col (0,0) right offset [+1,0] -> (1,0)
       // Odd col (1,0) right offset [+1,+1] -> (2,1)
       // Even col (2,1) right offset [+1,0] -> (3,1)
@@ -120,14 +120,14 @@ describe('computeLineClue', () => {
         [2, 1, F],
         [3, 1, E],
       ]);
-      const clue = computeLineClue({ col: 0, row: 0 }, 'descending', cellMap);
-      expect(clue.axis).toBe('descending');
+      const clue = computeLineClue({ col: 0, row: 0 }, 'right-facing', cellMap);
+      expect(clue.axis).toBe('right-facing');
       expect(clue.startCoord).toEqual({ col: 0, row: 0 });
       expect(clue.cells.map(coordKey)).toEqual(['0,0', '1,0', '2,1', '3,1']);
       expect(clue.value).toBe(2);
     });
 
-    it('spans gaps in descending line', () => {
+    it('spans gaps in right-facing line', () => {
       // Missing (2,1): line still includes cells on both sides
       const cellMap = buildCellMap([
         [0, 0, F],
@@ -135,7 +135,7 @@ describe('computeLineClue', () => {
         // (2,1) missing
         [3, 1, F],
       ]);
-      const clue = computeLineClue({ col: 0, row: 0 }, 'descending', cellMap);
+      const clue = computeLineClue({ col: 0, row: 0 }, 'right-facing', cellMap);
       expect(clue.cells.map(coordKey)).toEqual(['0,0', '1,0', '3,1']);
       expect(clue.value).toBe(3);
     });
@@ -166,7 +166,7 @@ describe('computeLineClue', () => {
 
     it('returns a single-cell line for an isolated EMPTY cell', () => {
       const cellMap = buildCellMap([[5, 5, E]]);
-      const clue = computeLineClue({ col: 5, row: 5 }, 'ascending', cellMap);
+      const clue = computeLineClue({ col: 5, row: 5 }, 'left-facing', cellMap);
       expect(clue.cells.map(coordKey)).toEqual(['5,5']);
       expect(clue.value).toBe(0);
     });
@@ -241,11 +241,11 @@ describe('computeAllLineClues', () => {
     });
   });
 
-  describe('ascending diagonal lines', () => {
-    it('finds ascending lines starting from cells with no predecessor', () => {
-      // Ascending line: (0,1) -> (1,0) -> (2,0)
-      // The predecessor of (0,1) along ascending would be stepping backwards.
-      // Reverse of ascending from even col offset [+1,-1] applied to (0,1):
+  describe('left-facing diagonal lines', () => {
+    it('finds left-facing lines starting from cells with no predecessor', () => {
+      // Left-facing line: (0,1) -> (1,0) -> (2,0)
+      // The predecessor of (0,1) along left-facing would be stepping backwards.
+      // Reverse of left-facing from even col offset [+1,-1] applied to (0,1):
       //   predecessor would be at (-1,2) for even col, which is not in map.
       // So (0,1) is a start.
       const cellMap = buildCellMap([
@@ -254,33 +254,33 @@ describe('computeAllLineClues', () => {
         [2, 0, E],
       ]);
       const clues = computeAllLineClues(cellMap);
-      const ascending = clues.filter(c => c.axis === 'ascending');
+      const leftFacing = clues.filter(c => c.axis === 'left-facing');
 
-      const startKeys = ascending.map(c => coordKey(c.startCoord));
+      const startKeys = leftFacing.map(c => coordKey(c.startCoord));
       expect(startKeys).toContain('0,1');
 
-      const line = ascending.find(c => coordKey(c.startCoord) === '0,1')!;
+      const line = leftFacing.find(c => coordKey(c.startCoord) === '0,1')!;
       expect(line.cells.map(coordKey)).toEqual(['0,1', '1,0', '2,0']);
       expect(line.value).toBe(2);
     });
   });
 
-  describe('descending diagonal lines', () => {
-    it('finds descending lines starting from cells with no predecessor', () => {
-      // Descending line: (0,0) -> (1,0) -> (2,1)
-      // Predecessor of (0,0) along descending would be outside the map.
+  describe('right-facing diagonal lines', () => {
+    it('finds right-facing lines starting from cells with no predecessor', () => {
+      // Right-facing line: (0,0) -> (1,0) -> (2,1)
+      // Predecessor of (0,0) along right-facing would be outside the map.
       const cellMap = buildCellMap([
         [0, 0, F],
         [1, 0, E],
         [2, 1, F],
       ]);
       const clues = computeAllLineClues(cellMap);
-      const descending = clues.filter(c => c.axis === 'descending');
+      const rightFacing = clues.filter(c => c.axis === 'right-facing');
 
-      const startKeys = descending.map(c => coordKey(c.startCoord));
+      const startKeys = rightFacing.map(c => coordKey(c.startCoord));
       expect(startKeys).toContain('0,0');
 
-      const line = descending.find(c => coordKey(c.startCoord) === '0,0')!;
+      const line = rightFacing.find(c => coordKey(c.startCoord) === '0,0')!;
       expect(line.cells.map(coordKey)).toEqual(['0,0', '1,0', '2,1']);
       expect(line.value).toBe(2);
     });
@@ -324,8 +324,8 @@ describe('computeAllLineClues', () => {
       // An isolated cell is a start for all 3 axes
       const axes = clues.map(c => c.axis).sort();
       expect(axes).toContain('vertical');
-      expect(axes).toContain('ascending');
-      expect(axes).toContain('descending');
+      expect(axes).toContain('left-facing');
+      expect(axes).toContain('right-facing');
 
       for (const clue of clues) {
         expect(clue.cells).toHaveLength(1);

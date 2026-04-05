@@ -64,9 +64,9 @@ function lineClueOffset(axis: LineAxis): { dx: number; dy: number; rotation: num
   switch (axis) {
     case 'vertical':
       return { dx: 0, dy: -rowStep * 0.65, rotation: 0 };
-    case 'ascending':
+    case 'left-facing':
       return { dx: colStep * 0.65, dy: -rowStep * 0.325, rotation: 60 };
-    case 'descending':
+    case 'right-facing':
       return { dx: -colStep * 0.65, dy: -rowStep * 0.325, rotation: -60 };
   }
 }
@@ -107,11 +107,11 @@ function clueHitTriangle(cx: number, cy: number, axis: LineAxis): string {
       // Label is above grid → wedge points down: center → v1 → v2
       i1 = 1; i2 = 2;
       break;
-    case 'descending':
+    case 'right-facing':
       // Label is upper-left → wedge points lower-right: center → v0 → v1
       i1 = 0; i2 = 1;
       break;
-    case 'ascending':
+    case 'left-facing':
       // Label is upper-right → wedge points lower-left: center → v2 → v3
       i1 = 2; i2 = 3;
       break;
@@ -349,7 +349,7 @@ export function renderClues(
 
     // --- Edge label (original positioning: anchor + offset) ---
     const anchorCoord =
-      clue.axis === 'ascending'
+      clue.axis === 'left-facing'
         ? clue.cells[clue.cells.length - 1]
         : clue.startCoord;
     const anchor = toPixel(anchorCoord, RADIUS);
@@ -357,8 +357,8 @@ export function renderClues(
     const edgeLy = anchor.y + dy;
 
     const edgeCoord =
-      clue.axis === 'ascending'
-        ? stepInDirection(clue.cells[clue.cells.length - 1], 'ascending')
+      clue.axis === 'left-facing'
+        ? stepInDirection(clue.cells[clue.cells.length - 1], 'left-facing')
         : predecessor(clue.startCoord, clue.axis);
     const edgeHit = toPixel(edgeCoord, RADIUS);
 
@@ -383,9 +383,9 @@ export function renderClues(
       let intLx: number, intLy: number;
       let partialCells: HexCoord[];
 
-      if (clue.axis === 'ascending') {
-        // Ascending interior: label above cells going down-left
-        const pred = predecessor(mp, 'ascending');
+      if (clue.axis === 'left-facing') {
+        // Left-facing interior: label above cells going down-left
+        const pred = predecessor(mp, 'left-facing');
         adjacentKey = coordKey(pred);
         if (!grid.cells.has(adjacentKey)) continue;
 

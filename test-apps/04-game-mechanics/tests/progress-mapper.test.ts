@@ -73,8 +73,8 @@ describe('serializeProgress', () => {
 
     const lineStates = new Map<string, LineClueState>([
       ['vertical:0,0', { visibility: 'invisible', savedVisibility: 'visible' }],
-      ['ascending:1,0', { visibility: 'dimmed', savedVisibility: 'dimmed' }],
-      ['descending:2,0', { visibility: 'visible-with-line', savedVisibility: 'visible-with-line' }],
+      ['left-facing:1,0', { visibility: 'dimmed', savedVisibility: 'dimmed' }],
+      ['right-facing:2,0', { visibility: 'visible-with-line', savedVisibility: 'visible-with-line' }],
     ]);
 
     const result = serializeProgress(
@@ -88,8 +88,8 @@ describe('serializeProgress', () => {
     expect(result.clues).not.toBeNull();
     expect(result.clues!.lines).toBeDefined();
     expect(result.clues!.lines!['v:0,0']).toEqual({ visibility: 'invisible' });
-    expect(result.clues!.lines!['a:1,0']).toEqual({ visibility: 'dimmed' });
-    expect(result.clues!.lines!['d:2,0']).toEqual({ visibility: 'visible-with-line' });
+    expect(result.clues!.lines!['l:1,0']).toEqual({ visibility: 'dimmed' });
+    expect(result.clues!.lines!['r:2,0']).toEqual({ visibility: 'visible-with-line' });
   });
 
   it('omits line clues with visible (default) visibility', () => {
@@ -229,8 +229,8 @@ describe('deserializeProgress', () => {
       clues: {
         lines: {
           'v:0,0': { visibility: 'dimmed' },
-          'a:1,0': { visibility: 'invisible' },
-          'd:2,0': { visibility: 'visible-with-line' },
+          'l:1,0': { visibility: 'invisible' },
+          'r:2,0': { visibility: 'visible-with-line' },
         },
       },
     };
@@ -240,11 +240,11 @@ describe('deserializeProgress', () => {
     expect(result.lineClueStates.has('vertical:0,0')).toBe(true);
     expect(result.lineClueStates.get('vertical:0,0')!.visibility).toBe('dimmed');
 
-    expect(result.lineClueStates.has('ascending:1,0')).toBe(true);
-    expect(result.lineClueStates.get('ascending:1,0')!.visibility).toBe('invisible');
+    expect(result.lineClueStates.has('left-facing:1,0')).toBe(true);
+    expect(result.lineClueStates.get('left-facing:1,0')!.visibility).toBe('invisible');
 
-    expect(result.lineClueStates.has('descending:2,0')).toBe(true);
-    expect(result.lineClueStates.get('descending:2,0')!.visibility).toBe('visible-with-line');
+    expect(result.lineClueStates.has('right-facing:2,0')).toBe(true);
+    expect(result.lineClueStates.get('right-facing:2,0')!.visibility).toBe('visible-with-line');
   });
 
   it('sets savedVisibility correctly (invisible -> visible, others -> same)', () => {
@@ -259,8 +259,8 @@ describe('deserializeProgress', () => {
       clues: {
         lines: {
           'v:0,0': { visibility: 'invisible' },
-          'a:1,0': { visibility: 'dimmed' },
-          'd:2,0': { visibility: 'visible-with-line' },
+          'l:1,0': { visibility: 'dimmed' },
+          'r:2,0': { visibility: 'visible-with-line' },
         },
       },
     };
@@ -270,9 +270,9 @@ describe('deserializeProgress', () => {
     // invisible -> savedVisibility should be 'visible'
     expect(result.lineClueStates.get('vertical:0,0')!.savedVisibility).toBe('visible');
     // dimmed -> savedVisibility should be 'dimmed'
-    expect(result.lineClueStates.get('ascending:1,0')!.savedVisibility).toBe('dimmed');
+    expect(result.lineClueStates.get('left-facing:1,0')!.savedVisibility).toBe('dimmed');
     // visible-with-line -> savedVisibility should be 'visible-with-line'
-    expect(result.lineClueStates.get('descending:2,0')!.savedVisibility).toBe('visible-with-line');
+    expect(result.lineClueStates.get('right-facing:2,0')!.savedVisibility).toBe('visible-with-line');
   });
 
   it('returns empty sets/maps when no clue overrides present', () => {
