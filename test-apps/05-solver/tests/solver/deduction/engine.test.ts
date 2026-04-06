@@ -26,10 +26,21 @@ describe('DeductionEngine', () => {
   });
 
   it('returns empty when no strategies produce results', () => {
+    // Use a grid where all cells are covered and no neighbor clues are visible,
+    // no flower clues are visible, and all segment states are invisible (not in map default)
+    // Achieves "no deductions possible" by disabling all deduction levels
     const grid = makeTiny3Grid();
     grid.coverAll();
     const vcs = buildVisibleClueSet(grid, new Map(), new Set());
-    const engine = new DeductionEngine(DEFAULT_CONFIG.deductionLevels);
+    const engine = new DeductionEngine({
+      trivial: false,
+      contiguity: false,
+      lineSegment: false,
+      flower: false,
+      pairwiseIntersection: false,
+      constraintPropagation: false,
+      setReasoning: false,
+    });
     const forced = engine.run(grid, vcs);
     expect(forced.length).toBe(0);
   });

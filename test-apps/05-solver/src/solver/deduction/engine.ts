@@ -2,6 +2,9 @@ import type { HexGrid } from '../../model/hex-grid';
 import type { VisibleClueSet } from '../visible-clues';
 import type { ForcedCell, DeductionLevels } from '../types';
 import { trivialStrategy } from './trivial';
+import { contiguityStrategy } from './contiguity';
+import { lineSegmentStrategy } from './line-segment';
+import { flowerStrategy } from './flower';
 
 export type DeductionStrategy = (grid: HexGrid, vcs: VisibleClueSet) => ForcedCell[];
 
@@ -16,7 +19,9 @@ export class DeductionEngine {
   constructor(private readonly levels: DeductionLevels) {
     this.strategies = [
       { key: 'trivial', fn: trivialStrategy },
-      // More strategies will be added in Tasks 6-9
+      { key: 'contiguity', fn: contiguityStrategy },
+      { key: 'lineSegment', fn: lineSegmentStrategy },
+      { key: 'flower', fn: flowerStrategy },
     ];
   }
 
