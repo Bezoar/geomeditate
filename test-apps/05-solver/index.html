@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solver Test App</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #141414; color: #fff; font-family: system-ui, sans-serif; }
+    #app { display: flex; flex-direction: column; height: 100vh; }
+    #controls { padding: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    #controls button, #controls select, #controls label {
+      font-size: 14px; color: #fff; background: #333; border: 1px solid #555;
+      padding: 4px 10px; border-radius: 4px; cursor: pointer;
+    }
+    #controls input[type="range"] { width: 100px; }
+    #controls input[type="number"] { width: 60px; background: #333; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 4px; }
+    #grid-container { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 20px; -webkit-user-select: none; user-select: none; }
+    #hud { padding: 8px 12px; display: flex; gap: 20px; font-size: 14px; }
+    .hud-item { opacity: 0.7; }
+    .hud-value { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="controls"></div>
+    <div id="grid-container">
+      <svg id="grid-svg"></svg>
+    </div>
+    <div id="hud">
+      <span class="hud-item">Remaining: <span id="remaining" class="hud-value">0</span></span>
+      <span class="hud-item">Mistakes: <span id="mistakes" class="hud-value">0</span></span>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
