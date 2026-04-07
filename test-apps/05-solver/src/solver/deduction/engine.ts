@@ -5,6 +5,9 @@ import { trivialStrategy } from './trivial';
 import { contiguityStrategy } from './contiguity';
 import { lineSegmentStrategy } from './line-segment';
 import { flowerStrategy } from './flower';
+import { pairwiseStrategy } from './pairwise';
+import { propagationStrategy } from './propagation';
+import { setReasoningStrategy } from './set-reasoning';
 
 export type DeductionStrategy = (grid: HexGrid, vcs: VisibleClueSet) => ForcedCell[];
 
@@ -22,6 +25,9 @@ export class DeductionEngine {
       { key: 'contiguity', fn: contiguityStrategy },
       { key: 'lineSegment', fn: lineSegmentStrategy },
       { key: 'flower', fn: flowerStrategy },
+      { key: 'pairwiseIntersection', fn: pairwiseStrategy },
+      { key: 'constraintPropagation', fn: propagationStrategy },
+      { key: 'setReasoning', fn: setReasoningStrategy },
     ];
   }
 
