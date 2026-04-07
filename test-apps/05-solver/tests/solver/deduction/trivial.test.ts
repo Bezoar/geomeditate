@@ -69,4 +69,32 @@ describe('trivialStrategy', () => {
     const forced = trivialStrategy(grid, vcs);
     expect(Array.isArray(forced)).toBe(true);
   });
+
+  it('saturation with covered neighbors: forces covered neighbors empty after all filled found', () => {
+    // Need a cell with neighbor clue value > 0, some neighbors marked filled
+    // (markedFilledCount > 0, remainingFilled = 0), and still-covered neighbors.
+    // Grid 5x3: open center cell (2,1). It has multiple neighbors.
+    // Fill exactly 1 neighbor, mark it, leave others covered.
+    // Center clue value = 1 (one filled neighbor).
+    // After marking the filled one: markedFilledCount=1, remainingFilled=0, coveredCount>0.
+    // This triggers the 'saturation' branch (markedFilledCount > 0).
+    const grid = new HexGrid({
+      name: 'test', description: '', width: 5, height: 3,
+      filledCoords: [{ col: 2, row: 0 }], // one filled neighbor of (2,1)
+      missingCoords: [],
+    });
+    grid.computeAllClues();
+    grid.coverAll();
+    grid.openCell({ col: 2, row: 1 }); // clue value = 1 (neighbor (2,0) is filled)
+    grid.markCell({ col: 2, row: 0 }); // mark the filled neighbor
+    // Now: markedFilledCount = 1, remainingFilled = 1 - 1 = 0
+    // coveredCount = number of other neighbors still covered (should be > 0)
+    const vcs = buildVisibleClueSet(grid, new Map(), new Set());
+    const forced = trivialStrategy(grid, vcs);
+    const satForced = forced.filter(f => f.deductionType === 'saturation');
+    expect(satForced.length).toBeGreaterThan(0);
+    for (const f of satForced) {
+      expect(f.identity).toBe('empty');
+    }
+  });
 });

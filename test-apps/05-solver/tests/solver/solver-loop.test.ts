@@ -170,4 +170,35 @@ describe('solve', () => {
       expect(step.remainingCount).toBeGreaterThanOrEqual(0);
     }
   });
+
+  it('handles stuck state when no forced cells and no activatable clues', () => {
+    // Create a grid where deduction cannot proceed:
+    // Disable all deduction strategies so the engine always returns [].
+    // This forces the solver to hit the "stuck" branch (lines 144-147).
+    const grid = makeTiny3Grid();
+    grid.coverAll();
+    const stuckConfig = {
+      ...DEFAULT_CONFIG,
+      deductionLevels: {
+        trivial: false,
+        contiguity: false,
+        lineSegment: false,
+        flower: false,
+        pairwiseIntersection: false,
+        constraintPropagation: false,
+        setReasoning: false,
+      },
+    };
+    const result = solve(grid, new Map(), new Set(), new Set(), stuckConfig);
+    // With all deductions disabled, solver cannot deduce anything.
+    // No deduction trace steps should be produced — only clue-activation (if any).
+    const deductionSteps = result.trace.filter(s => s.phase === 'deduction');
+    expect(deductionSteps.length).toBe(0);
+    // Covered cells should remain (solver got stuck)
+    let coveredCount = 0;
+    for (const cell of grid.cells.values()) {
+      if (cell.visualState === CellVisualState.COVERED) coveredCount++;
+    }
+    expect(coveredCount).toBeGreaterThan(0);
+  });
 });

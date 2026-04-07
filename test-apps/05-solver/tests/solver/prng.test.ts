@@ -96,4 +96,16 @@ describe('createPRNG', () => {
     const result = prng.pickWeighted(categories);
     expect(result).toBeNull();
   });
+
+  it('pickWeighted() always returns valid result with single category', () => {
+    // Edge case: single available category. roll = next() * weight.
+    // Since next() < 1, roll < weight, so roll - weight < 0 => always returns in loop.
+    // This verifies the loop correctly handles the boundary.
+    const prng = createPRNG(hashSeed('edge'));
+    const categories = [
+      { weight: 0.001, items: ['only'] },
+    ];
+    const result = prng.pickWeighted(categories);
+    expect(result).toBe('only');
+  });
 });
