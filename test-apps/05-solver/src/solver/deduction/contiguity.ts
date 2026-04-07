@@ -36,7 +36,7 @@ function findForcedByContiguity(
 }
 
 function checkContiguity(
-  center: HexCoord,
+  _center: HexCoord,
   allNeighborCoords: HexCoord[],
   filledKeys: Set<string>,
 ): boolean {

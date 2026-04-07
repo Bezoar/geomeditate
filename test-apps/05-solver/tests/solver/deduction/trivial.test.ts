@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { trivialStrategy } from '../../../src/solver/deduction/trivial';
 import { HexGrid } from '../../../src/model/hex-grid';
 import { buildVisibleClueSet } from '../../../src/solver/visible-clues';
-import { coordKey, neighbors } from '../../../src/model/hex-coord';
+
 
 function makeTiny3Grid(): HexGrid {
   const grid = new HexGrid({

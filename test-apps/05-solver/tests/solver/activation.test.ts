@@ -4,7 +4,8 @@ import { HexGrid } from '../../src/model/hex-grid';
 import { createPRNG, hashSeed } from '../../src/solver/prng';
 import { DEFAULT_CONFIG } from '../../src/solver/config';
 import type { SegmentState } from '../../src/view/segment-state';
-import { CellVisualState, CellGroundTruth } from '../../src/model/hex-cell';
+import { CellVisualState } from '../../src/model/hex-cell';
+import type { CandidatesByType } from '../../src/solver/activation';
 
 function makeTiny3Grid(): HexGrid {
   const grid = new HexGrid({
@@ -137,7 +138,7 @@ describe('selectClueToActivate', () => {
 
   it('returns null when all candidate lists are empty', () => {
     const prng = createPRNG(hashSeed('42'));
-    const empty: typeof import('../../src/solver/activation').CandidatesByType = {
+    const empty: CandidatesByType = {
       cell: [], line: [], flower: [],
     };
     const selected = selectClueToActivate(empty, DEFAULT_CONFIG.clueWeights.easy, prng);

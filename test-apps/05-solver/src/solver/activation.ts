@@ -3,7 +3,7 @@ import type { SegmentState } from '../view/segment-state';
 import type { ClueActivationType, ClueWeights, DeductionLevels } from './types';
 import type { PRNG } from './prng';
 import { CellVisualState, CellGroundTruth } from '../model/hex-cell';
-import { coordKey, parseCoordKey } from '../model/hex-coord';
+import { parseCoordKey } from '../model/hex-coord';
 import { buildVisibleClueSet } from './visible-clues';
 import { DeductionEngine } from './deduction/engine';
 import { getState } from '../view/segment-state';
