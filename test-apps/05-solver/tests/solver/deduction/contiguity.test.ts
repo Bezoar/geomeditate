@@ -3,7 +3,7 @@ import { contiguityStrategy } from '../../../src/solver/deduction/contiguity';
 import { HexGrid } from '../../../src/model/hex-grid';
 import { buildVisibleClueSet } from '../../../src/solver/visible-clues';
 import { neighbors } from '../../../src/model/hex-coord';
-import { CellGroundTruth, ClueNotation, CellVisualState } from '../../../src/model/hex-cell';
+import { CellGroundTruth, ClueNotation } from '../../../src/model/hex-cell';
 
 describe('contiguityStrategy', () => {
   it('contiguous constraint forces adjacent placement', () => {
