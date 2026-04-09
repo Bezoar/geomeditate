@@ -5,8 +5,8 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/model/**', 'src/clues/**', 'src/grids/**', 'src/save/**'],
-      exclude: ['src/view/**', 'src/save/storage.ts'],
+      include: ['src/model/**', 'src/clues/**', 'src/grids/**', 'src/save/**', 'src/solver/**'],
+      exclude: ['src/view/**', 'src/save/storage.ts', 'src/save/types.ts'],
       thresholds: {
         branches: 100,
       },

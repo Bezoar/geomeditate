@@ -6,11 +6,12 @@ import { renderClues, type ClueRenderOptions } from './view/clue-renderer';
 import { initControls } from './view/controls';
 import { coordKey } from './model/hex-coord';
 import type { HexCoord } from './model/hex-coord';
-import { CellVisualState } from './model/hex-cell';
+import { CellGroundTruth, CellVisualState } from './model/hex-cell';
 import type { LineClueState } from './view/line-clue-state';
 import { ActionHistory } from './save/history';
 import { serializeSaveFile, deserializeSaveFile } from './save/save-file';
 import { LocalStorageBackend, downloadJsonFile } from './save/storage';
+import { generatePuzzle } from './solver/pipeline';
 
 const svgEl = document.getElementById('grid-svg') as unknown as SVGElement;
 const controlsEl = document.getElementById('controls')!;
@@ -195,6 +196,214 @@ async function handleClear(): Promise<void> {
   await storage.clearAll();
 }
 
+/** Individual step in the replay — may or may not change a cell. */
+interface ReplayStep {
+  /** Cell to change, or null for clue-only activations (line clues). */
+  key: string | null;
+  visualState: CellVisualState | null;
+  reason: string;
+  /** Which clues the solver considers visible at this point. */
+  solverVisibleClues?: Set<string>;
+}
+
+/** Flatten replay steps into individual replay steps. */
+function flattenReplay(replay: import('./solver/verifier').SolveReplay): ReplayStep[] {
+  const steps: ReplayStep[] = [];
+  for (const step of replay.steps) {
+    for (const d of step.deductions) {
+      const isClueActivation = d.reason.explanation.startsWith('Solver activated');
+      steps.push({
+        key: isClueActivation ? null : coordKey(d.coord),
+        visualState: isClueActivation ? null : (d.result === 'filled' ? CellVisualState.MARKED_FILLED : CellVisualState.OPEN_EMPTY),
+        reason: d.reason.explanation,
+        solverVisibleClues: step.visibleClues,
+      });
+    }
+  }
+  return steps;
+}
+
+/** Apply steps up to (and including) index N to the live grid. */
+function applyStepsUpTo(steps: ReplayStep[], n: number): void {
+  // Reset all to covered first
+  for (const [key, cell] of currentGrid.cells) {
+    if (cell.visualState !== CellVisualState.COVERED) {
+      currentGrid.cells.set(key, { ...cell, visualState: CellVisualState.COVERED });
+    }
+  }
+  // Apply cell changes for steps 0..n (skip clue-only activations)
+  for (let i = 0; i <= n; i++) {
+    const r = steps[i];
+    if (r.key === null || r.visualState === null) continue; // clue-only step
+    const cell = currentGrid.cells.get(r.key);
+    if (cell) {
+      currentGrid.cells.set(r.key, { ...cell, visualState: r.visualState });
+    }
+  }
+  // Recount remaining
+  let remaining = 0;
+  for (const cell of currentGrid.cells.values()) {
+    if (cell.groundTruth === CellGroundTruth.FILLED && cell.visualState !== CellVisualState.MARKED_FILLED) {
+      remaining++;
+    }
+  }
+  currentGrid.remainingCount = remaining;
+
+  // Sync line clue visibility with solver state
+  syncLineClueVisibility(n >= 0 && n < steps.length ? steps[n].solverVisibleClues : undefined);
+}
+
+/** Build activeLineSegments map from solver's visible clues. */
+function buildActiveSegments(solverClues: Set<string> | undefined): Map<string, Set<number>> | undefined {
+  if (solverClues === undefined) return undefined;
+  const active = new Map<string, Set<number>>();
+  for (const id of solverClues) {
+    if (!id.startsWith('lineseg:')) continue;
+    // Parse lineseg:axis:col,row:N
+    const rest = id.slice('lineseg:'.length);
+    const lastColon = rest.lastIndexOf(':');
+    const lineKey = rest.slice(0, lastColon); // axis:col,row
+    const segIdx = Number(rest.slice(lastColon + 1));
+    let segs = active.get(lineKey);
+    if (!segs) { segs = new Set(); active.set(lineKey, segs); }
+    segs.add(segIdx);
+  }
+  // Also check for full line: clues
+  for (const id of solverClues) {
+    if (!id.startsWith('line:')) continue;
+    const lineKey = id.slice('line:'.length); // axis:col,row
+    if (!active.has(lineKey)) {
+      // Full line active but no segments — show all segments
+      const allSegs = new Set<number>();
+      const lc = currentGrid.lineClues.find(l =>
+        `${l.axis}:${coordKey(l.startCoord)}` === lineKey);
+      if (lc) {
+        for (let i = 0; i < lc.segments.length; i++) allSegs.add(i);
+        active.set(lineKey, allSegs);
+      }
+    }
+  }
+  return active;
+}
+
+/** Sync line clue visibility with solver state. */
+function syncLineClueVisibility(solverClues: Set<string> | undefined): void {
+  const activeSegs = buildActiveSegments(solverClues);
+  clueOptions.activeLineSegments = activeSegs;
+
+  // Set line-level visibility: visible if any segment active
+  for (const lc of currentGrid.lineClues) {
+    const lcKey = `${lc.axis}:${coordKey(lc.startCoord)}`;
+    const hasActive = activeSegs !== undefined && activeSegs.has(lcKey);
+    lineClueStates.set(lcKey, {
+      visibility: hasActive ? 'visible' : 'invisible',
+      savedVisibility: 'visible',
+    });
+  }
+}
+
+let flatSteps: ReplayStep[] = [];
+let replayIndex = -1;
+let playTimerId: ReturnType<typeof setTimeout> | null = null;
+
+function updateReplayStatus(): void {
+  const statusEl = document.getElementById('replay-status');
+  if (statusEl === null) return;
+  const stepText = 'Step ' + String(replayIndex + 1) + '/' + String(flatSteps.length);
+  if (replayIndex >= 0 && replayIndex < flatSteps.length) {
+    const r = flatSteps[replayIndex];
+    if (r.key !== null) {
+      const resultLabel = r.visualState === CellVisualState.MARKED_FILLED ? 'filled' : 'empty';
+      statusEl.textContent = stepText + ' — ' + r.key + ' → ' + resultLabel + ': ' + r.reason;
+    } else {
+      statusEl.textContent = stepText + ' — ' + r.reason;
+    }
+  } else {
+    statusEl.textContent = stepText;
+  }
+}
+
+function replayStepForward(): void {
+  if (replayIndex < flatSteps.length - 1) {
+    replayIndex++;
+    applyStepsUpTo(flatSteps, replayIndex);
+    updateReplayStatus();
+    render();
+  }
+}
+
+function replayStepBack(): void {
+  if (replayIndex >= 0) {
+    replayIndex--;
+    if (replayIndex === -1) {
+      currentGrid.coverAll();
+      syncLineClueVisibility(undefined); // hide all line clues
+    } else {
+      applyStepsUpTo(flatSteps, replayIndex);
+    }
+    updateReplayStatus();
+    render();
+  }
+}
+
+function replayPlay(): void {
+  const playPauseBtn = document.getElementById('play-pause-btn');
+  if (playTimerId !== null) {
+    // Pause
+    clearTimeout(playTimerId);
+    playTimerId = null;
+    if (playPauseBtn) playPauseBtn.textContent = 'Play';
+    return;
+  }
+  if (playPauseBtn) playPauseBtn.textContent = 'Pause';
+  function tick() {
+    if (replayIndex < flatSteps.length - 1) {
+      replayStepForward();
+      playTimerId = setTimeout(tick, 200);
+    } else {
+      playTimerId = null;
+      if (playPauseBtn) playPauseBtn.textContent = 'Play';
+    }
+  }
+  tick();
+}
+
+function handleSolve(): void {
+  // Stop any playing replay
+  if (playTimerId !== null) { clearTimeout(playTimerId); playTimerId = null; }
+
+  // Show "Solving..." feedback immediately, defer expensive work
+  const solveButton = document.getElementById('solve-btn') as HTMLButtonElement | null;
+  const statusEl = document.getElementById('replay-status');
+  if (statusEl !== null) statusEl.textContent = 'Solving...';
+  const replayDiv = document.getElementById('replay-controls');
+  if (replayDiv !== null) replayDiv.style.display = '';
+  if (solveButton !== null) { solveButton.disabled = true; solveButton.textContent = 'Solving...'; }
+
+  setTimeout(() => {
+    const diffSelect = document.getElementById('difficulty-select') as HTMLSelectElement | null;
+    const difficulty = (diffSelect?.value === 'hard' ? 'hard' : 'easy') as 'easy' | 'hard';
+    const result = generatePuzzle(currentGrid, difficulty);
+    if (solveButton !== null) { solveButton.disabled = false; solveButton.textContent = 'Solve'; }
+
+    if (result === null) {
+      if (statusEl !== null) statusEl.textContent = 'No solution found';
+      return;
+    }
+
+    currentGrid.coverAll();
+    actionHistory.clear();
+
+    flatSteps = flattenReplay(result.replay);
+    replayIndex = -1;
+
+    // Hide all line clues — solver starts with none visible
+    syncLineClueVisibility(undefined);
+    updateReplayStatus();
+    render();
+  }, 0);
+}
+
 initControls(controlsEl, {
   gridNames: TEST_GRIDS.map(g => g.name),
   onGridSelect: loadGrid,
@@ -213,4 +422,52 @@ initControls(controlsEl, {
   onClear: handleClear,
 });
 
-loadGrid(0);
+// Difficulty selector
+const difficultySelect = document.createElement('select');
+difficultySelect.id = 'difficulty-select';
+const easyOpt = document.createElement('option');
+easyOpt.value = 'easy';
+easyOpt.textContent = 'Easy';
+const hardOpt = document.createElement('option');
+hardOpt.value = 'hard';
+hardOpt.textContent = 'Hard';
+difficultySelect.appendChild(easyOpt);
+difficultySelect.appendChild(hardOpt);
+controlsEl.appendChild(difficultySelect);
+
+// Solve button
+const solveBtn = document.createElement('button');
+solveBtn.id = 'solve-btn';
+solveBtn.textContent = 'Solve';
+solveBtn.addEventListener('click', handleSolve);
+controlsEl.appendChild(solveBtn);
+
+// Replay controls (initially hidden)
+const replayDiv = document.createElement('div');
+replayDiv.id = 'replay-controls';
+replayDiv.style.display = 'none';
+
+const prevBtn = document.createElement('button');
+prevBtn.textContent = 'Prev';
+prevBtn.addEventListener('click', replayStepBack);
+
+const nextBtn = document.createElement('button');
+nextBtn.textContent = 'Next';
+nextBtn.addEventListener('click', replayStepForward);
+
+const playPauseBtn = document.createElement('button');
+playPauseBtn.id = 'play-pause-btn';
+playPauseBtn.textContent = 'Play';
+playPauseBtn.addEventListener('click', replayPlay);
+
+const statusSpan = document.createElement('span');
+statusSpan.id = 'replay-status';
+statusSpan.textContent = '';
+
+replayDiv.appendChild(prevBtn);
+replayDiv.appendChild(nextBtn);
+replayDiv.appendChild(playPauseBtn);
+replayDiv.appendChild(statusSpan);
+controlsEl.appendChild(replayDiv);
+
+loadGrid(3); // Large Grid
