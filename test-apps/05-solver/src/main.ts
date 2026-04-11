@@ -324,15 +324,15 @@ function handleHumanPlay(): void {
 
   // Show activated line segments and flower clues
   for (const clueId of solveActivatedClues) {
-    if (clueId.startsWith('cell:')) continue;
-    // Segment clues
-    if (segmentStates.has(clueId)) {
-      const existing = segmentStates.get(clueId)!;
-      segmentStates.set(clueId, { ...existing, visibility: 'visible', activated: true });
-    }
-    // Flower clues
-    if (hiddenFlowerClues.has(clueId)) {
-      hiddenFlowerClues.delete(clueId);
+    if (clueId.startsWith('line:')) {
+      const segId = clueId.slice(5);
+      const existing = segmentStates.get(segId);
+      if (existing) {
+        segmentStates.set(segId, { ...existing, visibility: 'visible', activated: true });
+      }
+    } else if (clueId.startsWith('flower:')) {
+      const flowerKey = clueId.slice(7);
+      hiddenFlowerClues.delete(flowerKey);
     }
   }
 
@@ -370,8 +370,11 @@ humanPlayBtn.textContent = 'Human Play';
 humanPlayBtn.addEventListener('click', handleHumanPlay);
 postSolveEl.appendChild(humanPlayBtn);
 
+const DEFAULT_GRID_INDEX = TEST_GRIDS.findIndex(g => g.name === 'Large Grid');
+
 initControls(controlsEl, {
   gridNames: TEST_GRIDS.map(g => g.name),
+  initialGridIndex: DEFAULT_GRID_INDEX >= 0 ? DEFAULT_GRID_INDEX : 0,
   onGridSelect: loadGrid,
   onBulkNeighborContiguityToggle: bulkSetNeighborContiguity,
   onBulkLineContiguityToggle: bulkSetLineContiguity,
@@ -399,4 +402,9 @@ settingsBtn.textContent = 'Settings';
 settingsBtn.addEventListener('click', () => settingsModal.open());
 controlsEl.appendChild(settingsBtn);
 
-loadGrid(0);
+const solveBtn = document.createElement('button');
+solveBtn.textContent = 'Solve';
+solveBtn.addEventListener('click', () => handleSolve(settingsModal.getConfig()));
+controlsEl.appendChild(solveBtn);
+
+loadGrid(DEFAULT_GRID_INDEX >= 0 ? DEFAULT_GRID_INDEX : 0);

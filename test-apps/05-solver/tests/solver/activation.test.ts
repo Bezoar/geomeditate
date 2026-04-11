@@ -17,18 +17,28 @@ function makeTiny3Grid(): HexGrid {
   return grid;
 }
 
+function hideAllSegments(grid: HexGrid): Map<string, SegmentState> {
+  const segStates = new Map<string, SegmentState>();
+  for (const segId of grid.segments.keys()) {
+    segStates.set(segId, { visibility: 'invisible', savedVisibility: 'visible', activated: false });
+  }
+  return segStates;
+}
+
 describe('findActionableHiddenClues', () => {
   it('finds hidden cell clues that would be actionable if revealed', () => {
     const grid = makeTiny3Grid();
     grid.coverAll();
-    const candidates = findActionableHiddenClues(grid, new Map(), new Set(), DEFAULT_CONFIG.deductionLevels);
+    const segStates = hideAllSegments(grid);
+    const candidates = findActionableHiddenClues(grid, segStates, new Set(), DEFAULT_CONFIG.deductionLevels);
     expect(candidates.cell.length).toBeGreaterThan(0);
   });
 
   it('skips covered cells that are FILLED ground truth', () => {
     const grid = makeTiny3Grid();
     grid.coverAll();
-    const candidates = findActionableHiddenClues(grid, new Map(), new Set(), DEFAULT_CONFIG.deductionLevels);
+    const segStates = hideAllSegments(grid);
+    const candidates = findActionableHiddenClues(grid, segStates, new Set(), DEFAULT_CONFIG.deductionLevels);
     // Filled cell (1,0) should not be in cell candidates
     const ids = candidates.cell.map(c => c.id);
     expect(ids).not.toContain('1,0');
@@ -130,8 +140,9 @@ describe('selectClueToActivate', () => {
   it('selects a clue using weighted PRNG', () => {
     const grid = makeTiny3Grid();
     grid.coverAll();
+    const segStates = hideAllSegments(grid);
     const prng = createPRNG(hashSeed('42'));
-    const candidates = findActionableHiddenClues(grid, new Map(), new Set(), DEFAULT_CONFIG.deductionLevels);
+    const candidates = findActionableHiddenClues(grid, segStates, new Set(), DEFAULT_CONFIG.deductionLevels);
     const selected = selectClueToActivate(candidates, DEFAULT_CONFIG.clueWeights.easy, prng);
     expect(selected).not.toBeNull();
   });
@@ -176,7 +187,7 @@ describe('activateClue', () => {
     expect(segStates.get(segId)!.visibility).toBe('visible');
   });
 
-  it('preserves other state fields when making line segment visible', () => {
+  it('sets visibility=visible and activated=true, preserving savedVisibility', () => {
     const grid = makeTiny3Grid();
     const segStates = new Map<string, SegmentState>();
     const segId = grid.segments.keys().next().value!;
@@ -185,7 +196,7 @@ describe('activateClue', () => {
     const updated = segStates.get(segId)!;
     expect(updated.visibility).toBe('visible');
     expect(updated.savedVisibility).toBe('dimmed');
-    expect(updated.activated).toBe(false);
+    expect(updated.activated).toBe(true);
   });
 
   it('makes a line segment visible when no prior state exists', () => {

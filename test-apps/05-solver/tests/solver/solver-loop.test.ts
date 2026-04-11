@@ -143,11 +143,13 @@ describe('solve', () => {
       segStates.set(segId, { visibility: 'invisible', savedVisibility: 'visible', activated: true });
     }
     const result = solve(grid, segStates, new Set(), new Set(), DEFAULT_CONFIG);
-    // Every clue-activation trace step should correspond to an entry in activatedClues
+    // Every clue-activation trace step should correspond to an entry in activatedClues.
+    // activatedClues uses "type:id" format so Human Play can distinguish cell/line/flower.
     const activationSteps = result.trace.filter(s => s.phase === 'clue-activation');
     for (const step of activationSteps) {
       expect(step.clueActivated).toBeDefined();
-      expect(result.activatedClues.has(step.clueActivated!.id)).toBe(true);
+      const key = `${step.clueActivated!.type}:${step.clueActivated!.id}`;
+      expect(result.activatedClues.has(key)).toBe(true);
     }
   });
 

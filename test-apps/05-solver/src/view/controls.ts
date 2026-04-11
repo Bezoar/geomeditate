@@ -1,5 +1,6 @@
 export interface ControlsConfig {
   gridNames: string[];
+  initialGridIndex?: number;
   onGridSelect: (index: number) => void;
   onBulkNeighborContiguityToggle: (enabled: boolean) => void;
   onBulkLineContiguityToggle: (enabled: boolean) => void;
@@ -32,6 +33,9 @@ export function initControls(container: HTMLElement, config: ControlsConfig): vo
     option.value = String(i);
     option.textContent = config.gridNames[i];
     select.appendChild(option);
+  }
+  if (config.initialGridIndex !== undefined) {
+    select.value = String(config.initialGridIndex);
   }
   select.addEventListener('change', () => {
     config.onGridSelect(Number(select.value));

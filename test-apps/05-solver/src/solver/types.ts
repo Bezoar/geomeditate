@@ -54,10 +54,12 @@ export interface TraceStep {
   clueActivated?: {
     type: ClueActivationType;
     id: string;
+    label: string;
     reason: string;
   };
   deduction?: {
     clueId: string;
+    clueLabel: string;
     deductionType: DeductionType;
     cellResolved: string;
     resolvedTo: 'filled' | 'empty';
@@ -69,6 +71,7 @@ export interface TraceStep {
   boardState: SerializedBoardState;
   remainingCount: number;
   actionableClueCount: number;
+  actionableClueIds: string[];
 }
 
 export interface SerializedBoardState {
